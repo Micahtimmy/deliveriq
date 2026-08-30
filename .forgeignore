@@ -1,0 +1,8 @@
+static/ici-app/node_modules
+static/ici-app/src
+node_modules
+.git
+.forge
+.vscode
+.idea
+*.log

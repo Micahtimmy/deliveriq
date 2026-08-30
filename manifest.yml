@@ -1,0 +1,34 @@
+modules:
+  jira:globalPage:
+    - key: ici-dashboard-page
+      title: ICI Dashboard
+      layout: basic
+      resource: ici-app
+      resolver:
+        function: resolver
+
+  function:
+    - key: resolver
+      handler: resolvers/index.handler
+
+resources:
+  - key: ici-app
+    path: static/ici-app/build
+    tunnel:
+      port: 3000
+
+permissions:
+  scopes:
+    - read:jira-work
+    - read:jira-user
+    - read:board-scope:jira-software
+    - read:sprint:jira-software
+    - read:project:jira
+    - read:issue-details:jira
+    - read:jql:jira
+    - storage:app
+app:
+  id: ari:cloud:ecosystem::app/3ee81d85-6416-4403-a67d-06608f72cadb
+  runtime:
+    name: nodejs22.x
+
