@@ -73,7 +73,9 @@ export interface PersonScore {
 }
 
 export interface TeamScoreResult {
+  boardId?: number;
   boardName: string;
+  sprintIds?: number[];
   sprintNames: string[];
   computedAt: string;
   scores: PersonScore[];

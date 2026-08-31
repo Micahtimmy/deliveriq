@@ -527,119 +527,269 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
     }
 
     case 'getARTSyncData': {
+      const teamName = (payload?.teamName as string) || 'All';
+      const fiscalYear = (payload?.fiscalYear as string) || 'FY27';
+      const quarter = (payload?.quarter as string) || 'Q2';
+      const iteration = (payload?.iteration as string) || 'Iteration 3';
+      const sprintState = (payload?.sprintState as string) || 'All';
+      const selectedFeatureKey = (payload?.featureKey as string) || 'ALL';
+
+      const mockTaskPool = [
+        // Feature 1: TELEPRESENCE (ISW ACADEMY)
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-101',
+          taskSummary: 'Mount Webex interactive screen',
+          acceptanceCriteria: 'Mount Webex interactive screen on conference wall',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 5,
+          assigneeName: 'Sarah Chen'
+        },
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-102',
+          taskSummary: 'Capture feedback and resolve issues',
+          acceptanceCriteria: 'Capture feedback and resolve issues from pilot users',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 8,
+          assigneeName: 'Alex Rivera'
+        },
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-103',
+          taskSummary: 'Conduct end-to-end testing (audio, video, touch interface)',
+          acceptanceCriteria: 'Conduct end-to-end testing (audio, video, touch interface)',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 13,
+          assigneeName: 'Marcus Vance'
+        },
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-104',
+          taskSummary: 'Configure device settings',
+          acceptanceCriteria: 'Configure device settings and network policies',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 5,
+          assigneeName: 'Elena Rostova'
+        },
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-105',
+          taskSummary: 'Integrate with corporate collaboration platform',
+          acceptanceCriteria: 'Integrate with corporate collaboration platform and single sign-on',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 8,
+          assigneeName: 'Sarah Chen'
+        },
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-106',
+          taskSummary: 'Monitor and confirm completion of Civil works/alteration of meeting room',
+          acceptanceCriteria: 'Monitor and confirm completion of Civil works/alteration of meeting room',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 13,
+          assigneeName: 'Alex Rivera'
+        },
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-107',
+          taskSummary: 'Perform physical setup and cable management',
+          acceptanceCriteria: 'Perform physical setup and cable management',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 8,
+          assigneeName: 'Marcus Vance'
+        },
+        {
+          epicKey: 'TELEPRESENCE (ISW ACADEMY)',
+          epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
+          taskKey: 'WEBOX-108',
+          taskSummary: 'Plan for and set Timeframe for installation',
+          acceptanceCriteria: 'Plan for and set Timeframe for installation',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Workplace Productivity',
+          storyPoints: 13,
+          assigneeName: 'Sarah Chen'
+        },
+
+        // Feature 2: SASE-SEC-200 (Security & Infrastructure)
+        {
+          epicKey: 'SASE-SEC-200',
+          epicSummary: 'Secure Access Service Edge (SASE) Zero-Trust Gateway Deployment',
+          taskKey: 'SASE-201',
+          taskSummary: 'Provision SASE Connector nodes in AWS & Azure',
+          acceptanceCriteria: 'Verify connector latency under 15ms with redundant tunnels across multi-region VPCs',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Security & Infrastructure',
+          storyPoints: 8,
+          assigneeName: 'David Kim'
+        },
+        {
+          epicKey: 'SASE-SEC-200',
+          epicSummary: 'Secure Access Service Edge (SASE) Zero-Trust Gateway Deployment',
+          taskKey: 'SASE-202',
+          taskSummary: 'Configure DLP & Threat Prevention Profiles',
+          acceptanceCriteria: 'Block PII data egress and enforce real-time antivirus deep-packet inspection',
+          status: 'In-Progress',
+          statusCategory: 'In Progress' as const,
+          teamName: 'Security & Infrastructure',
+          storyPoints: 5,
+          assigneeName: 'David Kim'
+        },
+        {
+          epicKey: 'SASE-SEC-200',
+          epicSummary: 'Secure Access Service Edge (SASE) Zero-Trust Gateway Deployment',
+          taskKey: 'SASE-203',
+          taskSummary: 'Pilot Zero-Trust Client on Executive and Engineering Devices',
+          acceptanceCriteria: 'Ensure seamless SAML 2.0 authentication with zero VPN connection drops',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Security & Infrastructure',
+          storyPoints: 13,
+          assigneeName: 'Sarah Chen'
+        },
+
+        // Feature 3: PAY-ROUTER-300 (Core Platform)
+        {
+          epicKey: 'PAY-ROUTER-300',
+          epicSummary: 'Enterprise Multi-Channel Payment Routing Engine & Settlement',
+          taskKey: 'PAY-301',
+          taskSummary: 'Implement Dynamic Bank Switch Failover Routing',
+          acceptanceCriteria: 'Route around banking outages in under 500ms with 99.999% transaction reliability',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Core Platform',
+          storyPoints: 13,
+          assigneeName: 'Alex Rivera'
+        },
+        {
+          epicKey: 'PAY-ROUTER-300',
+          epicSummary: 'Enterprise Multi-Channel Payment Routing Engine & Settlement',
+          taskKey: 'PAY-302',
+          taskSummary: 'ISO 8583 to ISO 20022 Financial Messaging Converter',
+          acceptanceCriteria: 'Full bidirectional translation and schema compliance validation for inter-bank transfers',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Core Platform',
+          storyPoints: 8,
+          assigneeName: 'Marcus Vance'
+        },
+        {
+          epicKey: 'PAY-ROUTER-300',
+          epicSummary: 'Enterprise Multi-Channel Payment Routing Engine & Settlement',
+          taskKey: 'PAY-303',
+          taskSummary: 'Kafka-driven Real-Time Settlement Reconciliation Ledger',
+          acceptanceCriteria: 'Reconcile 10,000 TPS transaction stream with zero drift against database balance',
+          status: 'In-Progress',
+          statusCategory: 'In Progress' as const,
+          teamName: 'Core Platform',
+          storyPoints: 13,
+          assigneeName: 'Elena Rostova'
+        },
+
+        // Feature 4: MOB-BIO-400 (Mobile Experience)
+        {
+          epicKey: 'MOB-BIO-400',
+          epicSummary: 'Customer Mobile Experience & Biometric ID Onboarding',
+          taskKey: 'MOB-401',
+          taskSummary: 'NFC Passport & National ID Chip Reading Engine',
+          acceptanceCriteria: 'Read and decrypt e-Passport NFC chip within 3 seconds on iOS and Android',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Mobile Experience',
+          storyPoints: 8,
+          assigneeName: 'Elena Rostova'
+        },
+        {
+          epicKey: 'MOB-BIO-400',
+          epicSummary: 'Customer Mobile Experience & Biometric ID Onboarding',
+          taskKey: 'MOB-402',
+          taskSummary: 'Liveness Detection 3D Facial Verification',
+          acceptanceCriteria: 'ISO 30107-3 compliant anti-spoofing liveness check with <0.1% false acceptance',
+          status: 'To-Do',
+          statusCategory: 'To Do' as const,
+          teamName: 'Mobile Experience',
+          storyPoints: 8,
+          assigneeName: 'Sarah Chen'
+        }
+      ];
+
+      // Build features list
+      const featureMap = new Map<string, { key: string; summary: string; projectName?: string; taskCount: number; storyPoints: number }>();
+      mockTaskPool.forEach(t => {
+        if (!featureMap.has(t.epicKey)) {
+          featureMap.set(t.epicKey, {
+            key: t.epicKey,
+            summary: t.epicSummary,
+            projectName: t.teamName,
+            taskCount: 0,
+            storyPoints: 0
+          });
+        }
+        const item = featureMap.get(t.epicKey)!;
+        item.taskCount += 1;
+        item.storyPoints += t.storyPoints;
+      });
+      const features = Array.from(featureMap.values());
+
+      let tasks = mockTaskPool;
+      if (selectedFeatureKey && selectedFeatureKey !== 'ALL') {
+        tasks = tasks.filter(t => t.epicKey === selectedFeatureKey || t.epicSummary.includes(selectedFeatureKey));
+      }
+      if (teamName && teamName !== 'All' && teamName !== 'All Teams') {
+        tasks = tasks.filter(t => t.teamName === teamName || teamName.includes(t.teamName));
+      }
+      if (sprintState && sprintState !== 'All') {
+        tasks = tasks.filter(t => (t.status === sprintState || (sprintState === 'Active' && t.status !== 'Done') || (sprintState === 'Closed' && t.status === 'Done')));
+      }
+
+      const uniqueEpics = Array.from(new Set(tasks.map(t => t.epicKey)));
+      const tasksCommitted = tasks.length;
+      const tasksCompleted = tasks.filter(t => t.statusCategory === 'Done').length;
+      const storyPointsCommitted = tasks.reduce((sum, t) => sum + t.storyPoints, 0);
+      const storyPointsCompleted = tasks.filter(t => t.statusCategory === 'Done').reduce((sum, t) => sum + t.storyPoints, 0);
+      const iterationPerformance = tasksCommitted > 0 ? Math.round((tasksCompleted / tasksCommitted) * 100) : 0;
+
       return {
         success: true,
         data: {
-          teamName: (payload?.teamName as string) || 'Workplace Productivity',
-          fiscalYear: (payload?.fiscalYear as string) || 'FY27',
-          quarter: (payload?.quarter as string) || 'Q2',
-          iteration: (payload?.iteration as string) || 'Iteration 3',
-          sprintState: (payload?.sprintState as string) || 'All',
-          epicsCommitted: 5,
-          tasksCommitted: 38,
-          tasksCompleted: 38,
-          iterationPerformance: 89,
-          storyPointsCommitted: 79,
-          storyPointsCompleted: 79,
+          teamName,
+          fiscalYear,
+          quarter,
+          iteration,
+          sprintState,
+          epicsCommitted: uniqueEpics.length || 1,
+          tasksCommitted,
+          tasksCompleted,
+          iterationPerformance,
+          storyPointsCommitted,
+          storyPointsCompleted,
           iterationObjective: 'Deliver enterprise collaboration hardware integration, end-to-end testing, and civil works room alterations across all active workplace productivity workstreams.',
-          tasks: [
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-101',
-              taskSummary: 'Mount Webex interactive screen',
-              acceptanceCriteria: 'Mount Webex interactive screen on conference wall',
-              status: 'To-Do',
-              statusCategory: 'To Do',
-              teamName: 'Workplace Productivity',
-              storyPoints: 5,
-              assigneeName: 'Sarah Chen'
-            },
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-102',
-              taskSummary: 'Capture feedback and resolve issues',
-              acceptanceCriteria: 'Capture feedback and resolve issues from pilot users',
-              status: 'To-Do',
-              statusCategory: 'To Do',
-              teamName: 'Workplace Productivity',
-              storyPoints: 8,
-              assigneeName: 'Alex Rivera'
-            },
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-103',
-              taskSummary: 'Conduct end-to-end testing (audio, video, touch interface)',
-              acceptanceCriteria: 'Conduct end-to-end testing (audio, video, touch interface)',
-              status: 'To-Do',
-              statusCategory: 'To Do',
-              teamName: 'Workplace Productivity',
-              storyPoints: 13,
-              assigneeName: 'Marcus Vance'
-            },
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-104',
-              taskSummary: 'Configure device settings',
-              acceptanceCriteria: 'Configure device settings and network policies',
-              status: 'To-Do',
-              statusCategory: 'To Do',
-              teamName: 'Workplace Productivity',
-              storyPoints: 5,
-              assigneeName: 'Elena Rostova'
-            },
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-105',
-              taskSummary: 'Integrate with corporate collaboration platform',
-              acceptanceCriteria: 'Integrate with corporate collaboration platform and single sign-on',
-              status: 'To-Do',
-              statusCategory: 'To Do',
-              teamName: 'Workplace Productivity',
-              storyPoints: 8,
-              assigneeName: 'Sarah Chen'
-            },
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-106',
-              taskSummary: 'Monitor and confirm completion of Civil works/alteration of meeting room',
-              acceptanceCriteria: 'Monitor and confirm completion of Civil works/alteration of meeting room',
-              status: 'Done',
-              statusCategory: 'Done',
-              teamName: 'Workplace Productivity',
-              storyPoints: 13,
-              assigneeName: 'Alex Rivera'
-            },
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-107',
-              taskSummary: 'Perform physical setup and cable management',
-              acceptanceCriteria: 'Perform physical setup and cable management',
-              status: 'To-Do',
-              statusCategory: 'To Do',
-              teamName: 'Workplace Productivity',
-              storyPoints: 8,
-              assigneeName: 'Marcus Vance'
-            },
-            {
-              epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-              epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-              taskKey: 'WEBOX-108',
-              taskSummary: 'Plan for and set Timeframe for installation',
-              acceptanceCriteria: 'Plan for and set Timeframe for installation',
-              status: 'Done',
-              statusCategory: 'Done',
-              teamName: 'Workplace Productivity',
-              storyPoints: 13,
-              assigneeName: 'Sarah Chen'
-            }
-          ],
+          tasks,
+          features,
+          selectedFeatureKey,
           allTeams: ['Workplace Productivity', 'Core Platform', 'Mobile Experience', 'Security & Infrastructure']
         }
       };

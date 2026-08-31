@@ -117,7 +117,9 @@ export async function getTeamScores(
     .map((person, i) => ({ ...person, rank: i + 1 }));
 
   const result: TeamScoreResult = {
+    boardId,
     boardName,
+    sprintIds,
     sprintNames,
     computedAt: new Date().toISOString(),
     scores,

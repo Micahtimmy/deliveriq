@@ -151,6 +151,14 @@ export interface ARTSyncTask {
   sprintState?: string;
 }
 
+export interface FeatureItem {
+  key: string;
+  summary: string;
+  projectName?: string;
+  taskCount?: number;
+  storyPoints?: number;
+}
+
 export interface ARTSyncData {
   teamName: string;
   fiscalYear: string;
@@ -166,4 +174,6 @@ export interface ARTSyncData {
   iterationObjective: string;
   tasks: ARTSyncTask[];
   allTeams: string[];
+  features?: FeatureItem[];
+  selectedFeatureKey?: string;
 }

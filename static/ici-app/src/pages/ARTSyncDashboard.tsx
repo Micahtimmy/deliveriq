@@ -6,7 +6,7 @@ import { JiraIssueLink } from '../utils/jiraUrl';
 import { PaginationControls } from '../components/PaginationControls';
 import { KPITraceabilityModal, TraceableIssue } from '../components/KPITraceabilityModal';
 import { TeamPresetManager } from '../components/TeamPresetManager';
-import { ARTSyncData, ARTSyncTask, TeamGroup } from '../types/portfolio';
+import { ARTSyncData, ARTSyncTask, FeatureItem, TeamGroup } from '../types/portfolio';
 import { JiraBoard } from '../types/jira';
 
 export const ARTSyncDashboard: React.FC = () => {
@@ -22,6 +22,7 @@ export const ARTSyncDashboard: React.FC = () => {
 
   // Filters State
   const [selectedTeam, setSelectedTeam] = useState('All');
+  const [selectedFeature, setSelectedFeature] = useState('ALL');
   const [selectedFY, setSelectedFY] = useState('FY27');
   const [selectedQuarter, setSelectedQuarter] = useState('Q2');
   const [selectedIteration, setSelectedIteration] = useState('Iteration 3');
@@ -51,7 +52,7 @@ export const ARTSyncDashboard: React.FC = () => {
 
   useEffect(() => {
     loadARTSyncData();
-  }, [selectedTeam, selectedFY, selectedQuarter, selectedIteration, selectedSprintState, selectedBoardIds, selectedLabel, riskFilter, selectedDateRange]);
+  }, [selectedTeam, selectedFeature, selectedFY, selectedQuarter, selectedIteration, selectedSprintState, selectedBoardIds, selectedLabel, riskFilter, selectedDateRange]);
 
   async function loadBoardsAndPresets() {
     try {
@@ -75,6 +76,7 @@ export const ARTSyncDashboard: React.FC = () => {
     try {
       const res = (await invoke('getARTSyncData', {
         teamName: selectedTeam,
+        featureKey: selectedFeature,
         fiscalYear: selectedFY,
         quarter: selectedQuarter,
         iteration: selectedIteration,
@@ -138,6 +140,23 @@ export const ARTSyncDashboard: React.FC = () => {
 
   const tasks = data?.tasks || [];
 
+  // Build dynamic feature options
+  const dynamicFeatures: FeatureItem[] = data?.features || [];
+  const featureMap = new Map<string, FeatureItem>();
+  dynamicFeatures.forEach((f) => featureMap.set(f.key, f));
+  tasks.forEach((t) => {
+    if (!featureMap.has(t.epicKey)) {
+      featureMap.set(t.epicKey, {
+        key: t.epicKey,
+        summary: t.epicSummary,
+        projectName: t.teamName,
+        taskCount: 0,
+        storyPoints: 0,
+      });
+    }
+  });
+  const featureDropdownOptions: FeatureItem[] = Array.from(featureMap.values());
+
   // Build full team dropdown options dynamically
   const dynamicTeams = Array.from(
     new Set([
@@ -148,7 +167,7 @@ export const ARTSyncDashboard: React.FC = () => {
     ])
   ).sort();
 
-  // Client-side search & team filtering
+  // Client-side search, feature & team filtering
   const filteredTasks = tasks.filter((t) => {
     const matchesSearch =
       !searchTerm ||
@@ -158,6 +177,12 @@ export const ARTSyncDashboard: React.FC = () => {
       t.acceptanceCriteria.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.teamName.toLowerCase().includes(searchTerm.toLowerCase());
 
+    const matchesFeature =
+      selectedFeature === 'ALL' ||
+      t.epicKey === selectedFeature ||
+      t.epicSummary === selectedFeature ||
+      t.epicKey.includes(selectedFeature);
+
     const matchesTeam =
       selectedTeam === 'All' ||
       t.teamName === selectedTeam ||
@@ -165,7 +190,7 @@ export const ARTSyncDashboard: React.FC = () => {
       (selectedTeam.startsWith('Preset: ') &&
         savedPresets.some((p) => selectedTeam.endsWith(p.name)));
 
-    return matchesSearch && matchesTeam;
+    return matchesSearch && matchesFeature && matchesTeam;
   });
 
   const paginatedTasks = filteredTasks.slice((currentPage - 1) * pageSize, currentPage * pageSize);
@@ -275,7 +300,7 @@ export const ARTSyncDashboard: React.FC = () => {
         {error && <ErrorBanner message={error} />}
 
         {/* Top Control Bar */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '12px', background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid #203A58' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', background: 'rgba(255, 255, 255, 0.08)', padding: '14px', borderRadius: '8px', border: '1px solid #203A58' }}>
           <div>
             <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#8796A5', display: 'block', marginBottom: '4px' }}>
               TEAM / ART
@@ -291,6 +316,27 @@ export const ARTSyncDashboard: React.FC = () => {
               {dynamicTeams.map((t) => (
                 <option key={t} value={t}>
                   {t}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: '#8796A5', display: 'block', marginBottom: '4px' }}>
+              FEATURE / EPIC
+            </label>
+            <select
+              value={selectedFeature}
+              onChange={(e) => {
+                setSelectedFeature(e.target.value);
+                setCurrentPage(1);
+              }}
+              style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #203A58', background: '#0A2540', color: '#FFFFFF', fontSize: '13px', fontWeight: 600 }}
+            >
+              <option value="ALL">All Features &amp; Epics ({featureDropdownOptions.length})</option>
+              {featureDropdownOptions.map((f) => (
+                <option key={f.key} value={f.key}>
+                  {f.key} — {f.summary.length > 28 ? f.summary.substring(0, 28) + '...' : f.summary}
                 </option>
               ))}
             </select>
@@ -367,7 +413,7 @@ export const ARTSyncDashboard: React.FC = () => {
             </label>
             <input
               type="text"
-              placeholder="Search by summary, key, criteria..."
+              placeholder="Search by summary, key..."
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -378,7 +424,7 @@ export const ARTSyncDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* 6 Badged Summary Cards (Dynamically recalculated and clickable) */}
+        {/* 6 Badged Summary Cards (Exact match to Art sync reference) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '14px' }}>
           {/* Card 1: Epics Committed */}
           <div
@@ -393,11 +439,11 @@ export const ARTSyncDashboard: React.FC = () => {
               e.currentTarget.style.borderColor = '#1B3E68';
             }}
           >
-            <div style={{ background: '#00B8D9', color: '#003846', padding: '6px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ background: '#00B8D9', color: '#003846', padding: '8px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               EPICS COMMITTED IN ITERATION
             </div>
             <div style={{ padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#FFFFFF' }}>{epicsCommittedCount}</div>
+              <div style={{ fontSize: '36px', fontWeight: 900, color: '#00B8D9' }}>{epicsCommittedCount}</div>
               <div style={{ fontSize: '11px', color: '#8796A5', marginTop: '4px' }}>Click to view Epics 🔍</div>
             </div>
           </div>
@@ -408,18 +454,18 @@ export const ARTSyncDashboard: React.FC = () => {
             style={{ background: '#0E2A47', borderRadius: '8px', border: '1px solid #1B3E68', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s ease, border-color 0.2s ease' }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.borderColor = '#E1824A';
+              e.currentTarget.style.borderColor = '#C2185B';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.borderColor = '#1B3E68';
             }}
           >
-            <div style={{ background: '#E1824A', color: '#FFFFFF', padding: '6px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ background: '#C2185B', color: '#FFFFFF', padding: '8px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               TASKS COMMITTED IN ITERATION
             </div>
             <div style={{ padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#FFFFFF' }}>{tasksCommittedCount}</div>
+              <div style={{ fontSize: '36px', fontWeight: 900, color: '#E91E63' }}>{tasksCommittedCount}</div>
               <div style={{ fontSize: '11px', color: '#8796A5', marginTop: '4px' }}>Click to view Tasks 🔍</div>
             </div>
           </div>
@@ -430,18 +476,18 @@ export const ARTSyncDashboard: React.FC = () => {
             style={{ background: '#0E2A47', borderRadius: '8px', border: '1px solid #1B3E68', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s ease, border-color 0.2s ease' }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.borderColor = '#2684FF';
+              e.currentTarget.style.borderColor = '#1976D2';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.borderColor = '#1B3E68';
             }}
           >
-            <div style={{ background: '#2684FF', color: '#FFFFFF', padding: '6px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ background: '#1976D2', color: '#FFFFFF', padding: '8px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               TASKS COMPLETED IN ITERATION
             </div>
             <div style={{ padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#FFFFFF' }}>{tasksCompletedCount}</div>
+              <div style={{ fontSize: '36px', fontWeight: 900, color: '#2684FF' }}>{tasksCompletedCount}</div>
               <div style={{ fontSize: '11px', color: '#8796A5', marginTop: '4px' }}>Click to view Completed 🔍</div>
             </div>
           </div>
@@ -450,11 +496,11 @@ export const ARTSyncDashboard: React.FC = () => {
           <div
             style={{ background: '#0E2A47', borderRadius: '8px', border: '1px solid #1B3E68', overflow: 'hidden' }}
           >
-            <div style={{ background: '#36B37E', color: '#073823', padding: '6px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-              ITERATION PERFORMANCE %
+            <div style={{ background: '#006644', color: '#FFFFFF', padding: '8px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              ITERATION PERFORMANCE
             </div>
             <div style={{ padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#57D9A3' }}>{iterationPerformancePct}%</div>
+              <div style={{ fontSize: '36px', fontWeight: 900, color: '#36B37E' }}>{iterationPerformancePct}%</div>
               <div style={{ fontSize: '11px', color: '#8796A5', marginTop: '4px' }}>Completion Rate</div>
             </div>
           </div>
@@ -465,18 +511,18 @@ export const ARTSyncDashboard: React.FC = () => {
             style={{ background: '#0E2A47', borderRadius: '8px', border: '1px solid #1B3E68', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s ease, border-color 0.2s ease' }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.borderColor = '#4C6B8B';
+              e.currentTarget.style.borderColor = '#203A58';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.borderColor = '#1B3E68';
             }}
           >
-            <div style={{ background: '#4C6B8B', color: '#FFFFFF', padding: '6px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ background: '#172B4D', color: '#FFFFFF', padding: '8px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               STORY POINTS COMMITTED
             </div>
             <div style={{ padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#FFFFFF' }}>{spCommittedCount}</div>
+              <div style={{ fontSize: '36px', fontWeight: 900, color: '#FFFFFF' }}>{spCommittedCount}</div>
               <div style={{ fontSize: '11px', color: '#8796A5', marginTop: '4px' }}>Click to view SP breakdown 🔍</div>
             </div>
           </div>
@@ -487,18 +533,18 @@ export const ARTSyncDashboard: React.FC = () => {
             style={{ background: '#0E2A47', borderRadius: '8px', border: '1px solid #1B3E68', overflow: 'hidden', cursor: 'pointer', transition: 'transform 0.2s ease, border-color 0.2s ease' }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.borderColor = '#FFAB00';
+              e.currentTarget.style.borderColor = '#FF8B00';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.borderColor = '#1B3E68';
             }}
           >
-            <div style={{ background: '#FFAB00', color: '#3A2600', padding: '6px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            <div style={{ background: '#FF8B00', color: '#3A2600', padding: '8px 12px', fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
               STORY POINTS COMPLETED (VELOCITY)
             </div>
             <div style={{ padding: '16px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', fontWeight: 900, color: '#FFD700' }}>{spCompletedCount}</div>
+              <div style={{ fontSize: '36px', fontWeight: 900, color: '#FFAB00' }}>{spCompletedCount}</div>
               <div style={{ fontSize: '11px', color: '#8796A5', marginTop: '4px' }}>Click to view Velocity 🔍</div>
             </div>
           </div>
@@ -519,8 +565,8 @@ export const ARTSyncDashboard: React.FC = () => {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '18px' }}>🎯</span>
-              <span style={{ fontWeight: 800, fontSize: '15px', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                ITERATION OBJECTIVES
+              <span style={{ fontWeight: 800, fontSize: '14px', color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                ITERATION OBJECTIVE
               </span>
             </div>
             <span style={{ color: '#8796A5', fontSize: '14px' }}>{isObjectiveExpanded ? '▲ Collapse' : '▼ Expand'}</span>
@@ -537,69 +583,68 @@ export const ARTSyncDashboard: React.FC = () => {
         {/* Iteration Summary Table */}
         <div style={{ background: '#0A2540', border: '1px solid #1D3A5C', borderRadius: '8px', overflow: 'hidden' }}>
           <div style={{ padding: '16px 20px', borderBottom: '1px solid #1D3A5C', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 800, color: '#FFFFFF' }}>
-              📋 Iteration Task &amp; Acceptance Criteria Breakdown ({filteredTasks.length} Items)
+            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              ITERATION SUMMARY ({filteredTasks.length} ITEMS)
             </h3>
           </div>
 
           {filteredTasks.length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', color: '#8796A5', fontSize: '14px' }}>
-              No tasks found matching your filter selection. Try adjusting the search term or Team/ART selector.
+              No tasks found matching your filter selection. Try adjusting the Feature, Team, or search term.
             </div>
           ) : (
             <div>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: '#0D3153', color: '#8796A5', borderBottom: '1px solid #1D3A5C', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.5px' }}>
-                    <th style={{ padding: '12px 16px' }}>Epic Name</th>
-                    <th style={{ padding: '12px 16px' }}>Task &amp; Summary</th>
-                    <th style={{ padding: '12px 16px' }}>Acceptance Criteria</th>
-                    <th style={{ padding: '12px 16px' }}>Team / Workstream</th>
+                    <th style={{ padding: '12px 16px' }}>EPIC</th>
+                    <th style={{ padding: '12px 16px' }}>TASK</th>
+                    <th style={{ padding: '12px 16px' }}>ACCEPTANCE CRITERIA</th>
                     <th style={{ padding: '12px 16px', textAlign: 'right' }}>SP</th>
-                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>Status</th>
+                    <th style={{ padding: '12px 16px', textAlign: 'center' }}>STATUS</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {paginatedTasks.map((task) => (
-                    <tr key={task.taskKey} style={{ borderBottom: '1px solid #143252' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: '#00B8D9', maxWidth: '200px' }}>
-                        <div>{task.epicKey}</div>
-                        <div style={{ fontSize: '11px', color: '#8796A5', fontWeight: 400 }}>{task.epicSummary}</div>
-                      </td>
-                      <td style={{ padding: '12px 16px', color: '#FFFFFF', fontWeight: 600, maxWidth: '240px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <JiraIssueLink issueKey={task.taskKey} />
-                          <span>{task.taskSummary}</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 16px', color: '#B3C1D1', maxWidth: '320px', lineHeight: '1.4' }}>
-                        {task.acceptanceCriteria}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span style={{ background: '#1D3A5C', color: '#DEEBFF', padding: '3px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 700 }}>
-                          {task.teamName}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 800, color: '#57D9A3' }}>
-                        {task.storyPoints || 0} pts
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            background: task.statusCategory === 'Done' ? '#006644' : task.statusCategory === 'In Progress' ? '#0747A6' : '#403294',
-                            color: '#FFFFFF',
-                            padding: '4px 10px',
-                            borderRadius: '12px',
-                            fontSize: '11px',
-                            fontWeight: 800,
-                            display: 'inline-block',
-                          }}
-                        >
-                          {task.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {paginatedTasks.map((task) => {
+                    const isDone = task.statusCategory === 'Done' || task.status.toLowerCase() === 'done';
+                    const isInProgress = task.statusCategory === 'In Progress' || task.status.toLowerCase().includes('progress');
+                    return (
+                      <tr key={task.taskKey} style={{ borderBottom: '1px solid #143252' }}>
+                        <td style={{ padding: '14px 16px', fontWeight: 700, color: '#FFFFFF', maxWidth: '240px' }}>
+                          <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF' }}>{task.epicSummary || task.epicKey}</div>
+                          <div style={{ fontSize: '11px', color: '#8796A5', marginTop: '2px' }}>{task.teamName}</div>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: '#FFFFFF', fontWeight: 700, maxWidth: '260px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <JiraIssueLink issueKey={task.taskKey} />
+                            <span>{task.taskSummary}</span>
+                          </div>
+                        </td>
+                        <td style={{ padding: '14px 16px', color: '#B3C1D1', maxWidth: '340px', lineHeight: '1.4' }}>
+                          {task.acceptanceCriteria}
+                        </td>
+                        <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 800, color: '#57D9A3' }}>
+                          {task.storyPoints || 0} pts
+                        </td>
+                        <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              background: isDone ? '#E3FCEF' : isInProgress ? '#DEEBFF' : '#FFEBE6',
+                              color: isDone ? '#006644' : isInProgress ? '#0747A6' : '#DE350B',
+                              padding: '4px 12px',
+                              borderRadius: '4px',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              display: 'inline-block',
+                              letterSpacing: '0.3px',
+                            }}
+                          >
+                            {task.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
 

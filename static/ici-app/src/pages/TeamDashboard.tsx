@@ -70,13 +70,18 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
     setRefreshing(true);
     setError(null);
     try {
+      const bId = data.boardId || 0;
+      const sIds = data.sprintIds || [];
+
       await invoke('clearCache', {
-        boardId: 0,
-        sprintIds: [],
+        boardId: bId,
+        sprintIds: sIds,
       });
 
       const res = (await invoke('getTeamScores', {
+        boardId: bId,
         boardName: data.boardName,
+        sprintIds: sIds,
         sprintNames: data.sprintNames,
         storyPointsField,
         authorizedApproverId,
