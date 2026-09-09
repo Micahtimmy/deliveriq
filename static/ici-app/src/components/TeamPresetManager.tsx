@@ -181,7 +181,7 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
         >
           <div>
             <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#172B4D' }}>
-              🎯 Multi-Team & Space Filter Manager
+              Multi-Team & Space Filter Manager
             </h2>
             <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#5E6C84' }}>
               Select teams or entire Jira Spaces, combine workstreams, and save filter presets for PM & Leadership views.
@@ -206,7 +206,6 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
         <div style={{ padding: '16px 24px 12px', background: '#FFFFFF', borderBottom: '1px solid #EBECF0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
             <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
-              <span style={{ position: 'absolute', left: '12px', fontSize: '14px', color: '#6B778C' }}>🔍</span>
               <input
                 type="text"
                 placeholder="Search team boards or Jira spaces (e.g. Core, Mobile, ISW)..."
@@ -214,7 +213,7 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
                 onChange={(e) => setSearchQuery(e.target.value)}
                 style={{
                   width: '100%',
-                  padding: '10px 12px 10px 36px',
+                  padding: '10px 12px',
                   borderRadius: '8px',
                   border: '2px solid #DFE1E6',
                   fontSize: '14px',
@@ -258,7 +257,7 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                <option value="ALL">🏢 All Jira Spaces ({uniqueSpaces.length})</option>
+                <option value="ALL">All Jira Spaces ({uniqueSpaces.length})</option>
                 {uniqueSpaces.map((sp) => (
                   <option key={sp.key} value={sp.key}>
                     [{sp.key}] {sp.name}
@@ -312,7 +311,7 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
           {/* Saved Presets Section */}
           <div>
             <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#42526E', textTransform: 'uppercase', marginBottom: '10px', letterSpacing: '0.5px' }}>
-              📁 Saved Team Presets ({savedPresets.length})
+              Saved Team Presets ({savedPresets.length})
             </h3>
 
             {savedPresets.length === 0 ? (
@@ -394,7 +393,7 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <h3 style={{ fontSize: '13px', fontWeight: 700, color: '#42526E', textTransform: 'uppercase', margin: 0, letterSpacing: '0.5px' }}>
-                🏢 Jira Spaces & Team Boards ({selectedIds.length} Selected)
+                Jira Spaces & Team Boards ({selectedIds.length} Selected)
               </h3>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
@@ -465,7 +464,7 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
                           onClick={() => handleToggleSpace(space.boards)}
                         >
                           {isAllSpaceSelected
-                            ? `✓ Entire Space Selected (Click to Clear)`
+                            ? `Entire Space Selected (Click to Clear)`
                             : `+ Add Entire Space (${space.boards.length})`}
                         </Button>
                       </div>
@@ -523,7 +522,7 @@ export const TeamPresetManager: React.FC<TeamPresetManagerProps> = ({
           {isCreatingNew ? (
             <div style={{ padding: '16px', background: '#F4F5F7', borderRadius: '8px', border: '1px solid #DFE1E6' }}>
               <h4 style={{ margin: '0 0 12px', fontSize: '14px', fontWeight: 700, color: '#172B4D' }}>
-                💾 Save Selection as Named Team Filter
+                Save Selection as Named Team Filter
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <input

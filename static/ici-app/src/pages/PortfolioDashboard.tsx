@@ -85,14 +85,15 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
     boardIds: number[] = selectedBoardIds,
     projectKeys?: string[],
     labels: string[] = selectedLabel !== 'ALL' ? [selectedLabel] : [],
-    dateRange: string = selectedDateRange
+    dateRange: string = selectedDateRange,
+    forceRefresh: boolean = false
   ) {
     setLoading(true);
     setError(null);
     try {
       const res = await invoke<PortfolioDataResult>(
         'getPortfolioData',
-        { boardIds, projectKeys, labels, dateRange }
+        { boardIds, projectKeys, labels, dateRange, forceRefresh }
       );
       if (res.success && res.data) {
         setData(res.data);
@@ -161,7 +162,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
   function handleCopyBriefing() {
     if (!data?.aiBriefing) return;
     const briefing = data.aiBriefing;
-    const text = `📊 **ICI Executive Briefing - ${new Date().toLocaleDateString()}**\n\n` +
+    const text = `**ICI Executive Briefing - ${new Date().toLocaleDateString()}**\n\n` +
       `**Overall Health:** ${briefing.overallHealth}\n\n` +
       `**Summary:**\n${briefing.summaryNarrative}\n\n` +
       `**Key Highlights:**\n${briefing.keyHighlights.map(h => `- ${h}`).join('\n')}\n\n` +
@@ -292,18 +293,18 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
       <div className="hero-header">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: '26px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.5px' }}>
-              🚀 Program & Portfolio Management
+            <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#FFFFFF', letterSpacing: '-0.3px' }}>
+              Program &amp; Portfolio Management
             </h1>
-            <p style={{ margin: '6px 0 0', color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px', fontWeight: 500 }}>
-              Multi-team Epic tracking, cross-team iteration velocity, effort allocation, and AI executive digests.
+            <p style={{ margin: '6px 0 0', color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px', fontWeight: 400 }}>
+              Multi-team Epic tracking, cross-team iteration velocity, effort allocation, and executive summaries.
             </p>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
             {/* Presets Select */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#42526E' }}>Filter Preset:</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Filter Preset:</span>
               <select
                 value={selectedGroup}
                 onChange={(e) => {
@@ -318,8 +319,8 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                   }
                 }}
                 style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
+                  padding: '7px 12px',
+                  borderRadius: '4px',
                   border: '1px solid #C1C7D0',
                   fontSize: '13px',
                   fontWeight: 600,
@@ -328,18 +329,18 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                   cursor: 'pointer',
                 }}
               >
-                <option value="">🌐 All Teams & Projects ({boards.length} Boards)</option>
+                <option value="">All Teams &amp; Projects ({boards.length} Boards)</option>
                 {teamGroups.map(g => (
-                  <option key={g.id} value={g.id}>📁 {g.name} ({g.boardIds.length} Teams)</option>
+                  <option key={g.id} value={g.id}>{g.name} ({g.boardIds.length} Teams)</option>
                 ))}
               </select>
             </div>
 
             <Button appearance="subtle" onClick={() => setIsPresetModalOpen(true)}>
-              ⚙️ Manage Presets & Teams ({selectedBoardIds.length || 'All'})
+              Manage Presets &amp; Teams ({selectedBoardIds.length || 'All'})
             </Button>
 
-            <Button appearance="primary" onClick={() => loadPortfolioData()}>
+            <Button appearance="primary" onClick={() => loadPortfolioData(selectedBoardIds, undefined, selectedLabel !== 'ALL' ? [selectedLabel] : [], selectedDateRange, true)}>
               Refresh View
             </Button>
           </div>
@@ -406,7 +407,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                   gap: '4px',
                 }}
               >
-                🏷️ Label: {selectedLabel}
+                Label: {selectedLabel}
                 <span
                   onClick={() => {
                     setSelectedLabel('ALL');
@@ -434,7 +435,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                   gap: '4px',
                 }}
               >
-                📅 Created: Last {selectedDateRange.replace('d', ' Days')}
+                Created: Last {selectedDateRange.replace('d', ' Days')}
                 <span
                   onClick={() => {
                     setSelectedDateRange('all');
@@ -462,7 +463,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                   gap: '4px',
                 }}
               >
-                ⚠️ Risk: {riskFilter.replace('_', ' ')}
+                Risk: {riskFilter.replace('_', ' ')}
                 <span
                   onClick={() => setRiskFilter('ALL')}
                   style={{ cursor: 'pointer', marginLeft: '4px', color: '#BF2600', fontWeight: 700 }}
@@ -512,17 +513,17 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
               });
             }}
           >
-            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              🎯 Epic Completion Rate (Click to trace)
+            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Epic Completion Rate
             </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#0052CC', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: '#0052CC', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
               {overall.epicCompletionPercentage}%
             </div>
-            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>
+            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 400 }}>
               {overall.completedEpics} of {overall.totalEpics} Epics Done
             </div>
             <div style={{ background: '#EBECF0', borderRadius: '6px', height: '8px', marginTop: '12px', overflow: 'hidden' }}>
-              <div style={{ background: 'var(--primary-gradient)', height: '100%', width: `${overall.epicCompletionPercentage}%`, transition: 'width 0.5s ease' }} />
+              <div style={{ background: '#0052CC', height: '100%', width: `${overall.epicCompletionPercentage}%`, transition: 'width 0.5s ease' }} />
             </div>
           </div>
 
@@ -553,17 +554,17 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
               });
             }}
           >
-            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              ⚡ Story Points Delivered (Click to trace)
+            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Story Points Delivered
             </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#00875A', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: '#00875A', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
               {overall.spCompletionPercentage}%
             </div>
-            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>
+            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 400 }}>
               {overall.completedStoryPoints} of {overall.totalStoryPoints} SP Done
             </div>
             <div style={{ background: '#EBECF0', borderRadius: '6px', height: '8px', marginTop: '12px', overflow: 'hidden' }}>
-              <div style={{ background: 'var(--success-gradient)', height: '100%', width: `${overall.spCompletionPercentage}%`, transition: 'width 0.5s ease' }} />
+              <div style={{ background: '#00875A', height: '100%', width: `${overall.spCompletionPercentage}%`, transition: 'width 0.5s ease' }} />
             </div>
           </div>
 
@@ -592,21 +593,21 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
               });
             }}
           >
-            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              📊 Iteration Progress (Click to trace)
+            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Iteration Progress
             </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: '#6554C0', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: '#6554C0', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
               {teamIterations.length > 0
                 ? `${Math.round(teamIterations.reduce((acc, t) => acc + t.completionPercentage, 0) / teamIterations.length)}%`
                 : `${overall.issueCompletionPercentage}%`}
             </div>
-            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>
+            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 400 }}>
               {teamIterations.length || selectedBoardIds.length || boards.length} Active Workstreams
             </div>
             <div style={{ background: '#EBECF0', borderRadius: '6px', height: '8px', marginTop: '12px', overflow: 'hidden' }}>
               <div
                 style={{
-                  background: 'var(--accent-gradient)',
+                  background: '#6554C0',
                   height: '100%',
                   width: `${teamIterations.length > 0 ? Math.round(teamIterations.reduce((acc, t) => acc + t.completionPercentage, 0) / teamIterations.length) : overall.issueCompletionPercentage}%`,
                   transition: 'width 0.5s ease',
@@ -633,19 +634,19 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
               });
             }}
           >
-            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-              ⚠️ Dependency Links (Click to trace)
+            <div style={{ fontSize: '11px', color: '#5E6C84', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Dependency Links
             </div>
-            <div style={{ fontSize: '32px', fontWeight: 800, color: dependencies.length > 0 ? '#FF8B00' : '#00875A', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: dependencies.length > 0 ? '#FF8B00' : '#00875A', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
               {dependencies.length}
             </div>
-            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>
+            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 400 }}>
               Cross-Team Dependencies Tracked
             </div>
             <div style={{ background: '#EBECF0', borderRadius: '6px', height: '8px', marginTop: '12px', overflow: 'hidden' }}>
               <div
                 style={{
-                  background: dependencies.length > 0 ? 'var(--warning-gradient)' : 'var(--success-gradient)',
+                  background: dependencies.length > 0 ? '#FF8B00' : '#00875A',
                   height: '100%',
                   width: '100%',
                   transition: 'width 0.5s ease',
@@ -665,8 +666,8 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
         <TabList>
           <Tab>Epic Progress Tracker</Tab>
           <Tab>Cross-Team Iteration Progress</Tab>
-          <Tab>Leadership & Delivery Insights</Tab>
-          <Tab>AI Executive Intelligence</Tab>
+          <Tab>Leadership &amp; Delivery Insights</Tab>
+          <Tab>Executive Briefing</Tab>
         </TabList>
 
         {/* TAB 0: EPIC PROGRESS TRACKER */}
@@ -700,7 +701,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
 
                 {/* Label Filter */}
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#5E6C84' }}>🏷️ Label:</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#5E6C84' }}>Label:</span>
                   <select
                     value={selectedLabel}
                     onChange={(e) => {
@@ -721,14 +722,14 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                   >
                     <option value="ALL">All Labels ({availableLabels.length})</option>
                     {availableLabels.map(l => (
-                      <option key={l} value={l}>🏷️ {l}</option>
+                      <option key={l} value={l}>{l}</option>
                     ))}
                   </select>
                 </div>
 
                 {/* Date Created Filter */}
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#5E6C84' }}>📅 Created:</span>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#5E6C84' }}>Created:</span>
                   <select
                     value={selectedDateRange}
                     onChange={(e) => {
@@ -850,7 +851,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                             spacing="compact"
                             onClick={() => setActiveEpicModal(epic)}
                           >
-                            🔍 View Issues ({epic.totalChildIssues})
+                            View Issues ({epic.totalChildIssues})
                           </Button>
                         </td>
                       </tr>
@@ -875,7 +876,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
           <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ padding: '20px', background: '#FAFBFC', border: '1px solid #DFE1E6', borderRadius: '8px' }}>
               <h3 style={{ margin: '0 0 8px', color: '#172B4D', fontSize: '18px' }}>
-                🚀 Cross-Team Active Iteration Progress
+                Cross-Team Active Iteration Progress
               </h3>
               <p style={{ margin: 0, color: '#5E6C84', fontSize: '14px' }}>
                 Real-time active sprint status, committed vs delivered story points, and health indicators across all selected teams.
@@ -926,7 +927,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                       {/* Dates */}
                       {ti.startDate && ti.endDate && (
                         <div style={{ fontSize: '12px', color: '#6B778C', marginBottom: '16px' }}>
-                          📅 {new Date(ti.startDate).toLocaleDateString()} — {new Date(ti.endDate).toLocaleDateString()}
+                          {new Date(ti.startDate).toLocaleDateString()} — {new Date(ti.endDate).toLocaleDateString()}
                         </div>
                       )}
 
@@ -987,14 +988,14 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
                   <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: 800 }}>
-                    📊 Leadership Executive Summary & Delivery Highlights
+                    Leadership Executive Summary & Delivery Highlights
                   </h3>
                   <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: '13px' }}>
                     Executive report of accomplishments, delivered milestones, active risk callouts, and key delivery timelines for the filtered period ({selectedDateRange === 'all' ? 'All Time' : `Last ${selectedDateRange}`}).
                   </p>
                 </div>
                 <div style={{ background: '#E3FCEF', color: '#006644', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
-                  Report Generated: 📅 {new Date().toISOString().substring(0, 10)}
+                  Report Generated: {new Date().toISOString().substring(0, 10)}
                 </div>
               </div>
 
@@ -1027,7 +1028,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
 
               {/* Key Accomplishments & Delivery Timelines Table */}
               <h4 style={{ margin: '0 0 12px', color: 'var(--text-primary)', fontSize: '15px', fontWeight: 700 }}>
-                🎯 Key Delivered Highlights & Milestones (With Completion Timelines)
+                Key Delivered Highlights & Milestones (With Completion Timelines)
               </h4>
               <div style={{ overflowX: 'auto', marginBottom: '24px' }}>
                 <table className="modern-table">
@@ -1060,7 +1061,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                             <td><Badge appearance="default">{epic.projectName}</Badge></td>
                             <td style={{ fontWeight: 700, color: '#0052CC' }}>{epic.completedStoryPoints} / {epic.totalStoryPoints} SP</td>
                             <td style={{ fontWeight: 600, color: '#006644' }}>
-                              📅 {epic.updatedAt ? epic.updatedAt.substring(0, 10) : new Date().toISOString().substring(0, 10)}
+                              {epic.updatedAt ? epic.updatedAt.substring(0, 10) : new Date().toISOString().substring(0, 10)}
                             </td>
                             <td>
                               <Badge appearance={epic.statusCategory === 'Done' ? 'added' : 'primary'}>
@@ -1076,11 +1077,11 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
 
               {/* Identified Risks & Timeline Callouts */}
               <h4 style={{ margin: '0 0 12px', color: '#DE350B', fontSize: '15px', fontWeight: 700 }}>
-                ⚠️ Delivery Risks & Blocker Audit Log (Callout for Leadership)
+                Delivery Risks & Blocker Audit Log (Callout for Leadership)
               </h4>
               {filteredEpics.filter(e => e.riskLevel !== 'ON_TRACK').length === 0 && dependencies.length === 0 ? (
                 <div style={{ padding: '14px', background: '#E3FCEF', borderRadius: '6px', color: '#006644', fontSize: '13px', fontWeight: 600 }}>
-                  ✓ Clean Delivery Record: No active blockers, unauthorized date changes, or critical risks detected across selected workstreams.
+                  Clean Delivery Record: No active blockers, unauthorized date changes, or critical risks detected across selected workstreams.
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1091,7 +1092,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                           <JiraIssueLink issueKey={epic.key} label={epic.key} /> — {epic.summary}
                         </strong>
                         <span style={{ fontSize: '12px', color: '#5E6C84', fontWeight: 600 }}>
-                          Logged: 📅 {epic.updatedAt ? epic.updatedAt.substring(0, 10) : new Date().toISOString().substring(0, 10)}
+                          Logged: {epic.updatedAt ? epic.updatedAt.substring(0, 10) : new Date().toISOString().substring(0, 10)}
                         </span>
                       </div>
                       <div style={{ color: '#42526E' }}>
@@ -1190,14 +1191,14 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
               <div style={{ padding: '24px', background: '#FAFBFC', border: '1px solid #DFE1E6', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <h3 style={{ margin: 0, fontSize: '18px', color: '#172B4D' }}>🤖 AI Executive Briefing</h3>
+                    <h3 style={{ margin: 0, fontSize: '18px', color: '#172B4D' }}>Executive Briefing</h3>
                     <Badge appearance={briefing.overallHealth === 'HEALTHY' ? 'added' : briefing.overallHealth === 'NEEDS_ATTENTION' ? 'primary' : 'removed'}>
                       {briefing.overallHealth.replace('_', ' ')}
                     </Badge>
                   </div>
 
                   <Button appearance="primary" onClick={handleCopyBriefing}>
-                    {copied ? 'Copied to Clipboard! ✓' : 'Copy Briefing for Slack / Email'}
+                    {copied ? 'Copied to Clipboard' : 'Copy Briefing for Slack / Email'}
                   </Button>
                 </div>
 

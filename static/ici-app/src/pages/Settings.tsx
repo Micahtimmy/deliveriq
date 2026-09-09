@@ -130,15 +130,15 @@ export const Settings: React.FC = () => {
 
         <div style={{ marginBottom: '20px' }}>
           <label style={{ fontWeight: 600, display: 'block', marginBottom: '6px', color: '#172B4D' }}>
-            Authorized Approver (Engineering Lead / PM)
+            Authorized Due Date Approver(s) (Manager / Lead Name or Search)
           </label>
           <UserSelect
             value={authorizedApproverId}
-            onChange={(accId) => setAuthorizedApproverId(accId)}
-            placeholder="Search Jira user by display name or email address..."
+            onChange={(val) => setAuthorizedApproverId(val)}
+            placeholder="Type manager name(s) (e.g. Sarah Chen, John Doe) or search Jira users..."
           />
           <p style={{ fontSize: '12px', color: '#6B778C', marginTop: '6px', lineHeight: '1.4' }}>
-            Due date changes approved by this person are treated as authorized. Changes made by assignees themselves are flagged.
+            Enter one or more manager/lead names or select them from Jira. Due date modifications made or approved by these individuals are marked as <strong>Authorized</strong>. Due date changes made by assignees without authorization are flagged as <strong>Unauthorized Due Date Drift</strong>.
           </p>
         </div>
 

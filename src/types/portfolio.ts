@@ -158,6 +158,37 @@ export interface FeatureItem {
   storyPoints?: number;
 }
 
+export interface RiskItem {
+  issueKey: string;
+  summary: string;
+  issueType: string;
+  status: string;
+  teamName?: string;
+}
+
+export interface BurndownPoint {
+  date: string;
+  remaining: number;
+  ideal?: number;
+}
+
+export interface IterationPerformancePoint {
+  iteration: string;
+  performance: number;
+}
+
+export interface VelocityTrendPoint {
+  iteration: string;
+  committed: number;
+  completed: number;
+}
+
+export interface TeamPerformanceItem {
+  code: string;
+  name: string;
+  performance: number;
+}
+
 export interface ARTSyncData {
   teamName: string;
   fiscalYear: string;
@@ -175,5 +206,13 @@ export interface ARTSyncData {
   allTeams: string[];
   features?: FeatureItem[];
   selectedFeatureKey?: string;
+  riskRegister?: RiskItem[];
+  burndownData?: BurndownPoint[];
+  iterationPerformanceHistory?: IterationPerformancePoint[];
+  velocityTrend?: VelocityTrendPoint[];
+  teamPerformanceList?: TeamPerformanceItem[];
+  emptyReason?: string;
+  isSampleData?: boolean;
 }
+
 

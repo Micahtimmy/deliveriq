@@ -104,7 +104,6 @@ export const KPITraceabilityModal: React.FC<KPITraceabilityModalProps> = ({
         >
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '18px' }}>🔍</span>
               <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 800, color: '#172B4D' }}>{title}</h2>
               <span
                 style={{

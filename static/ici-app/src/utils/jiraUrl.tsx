@@ -1,10 +1,9 @@
 import React from 'react';
-import { router } from '@forge/bridge';
 
 /**
  * Open a Jira issue or page directly in host window (inside Forge) or new browser tab (standalone).
  */
-export function openJiraIssue(issueKey: string, e?: React.MouseEvent) {
+export async function openJiraIssue(issueKey: string, e?: React.MouseEvent) {
   if (e) {
     e.preventDefault();
     e.stopPropagation();
@@ -12,13 +11,18 @@ export function openJiraIssue(issueKey: string, e?: React.MouseEvent) {
   if (!issueKey) return;
 
   const url = `/browse/${issueKey}`;
-  try {
-    if (router && typeof router.navigate === 'function') {
-      router.navigate(url);
-      return;
+  const isInsideForge = typeof window !== 'undefined' && window.parent !== window;
+
+  if (isInsideForge) {
+    try {
+      const { router } = await import('@forge/bridge');
+      if (router && typeof router.navigate === 'function') {
+        await router.navigate(url);
+        return;
+      }
+    } catch {
+      // Fallback to window.open if forge bridge fails
     }
-  } catch (err) {
-    // Fallback if running outside Forge iframe
   }
 
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -64,7 +68,7 @@ export const JiraIssueLink: React.FC<JiraIssueLinkProps> = ({
       onMouseEnter={(e) => (e.currentTarget.style.color = '#0747A6')}
       onMouseLeave={(e) => (e.currentTarget.style.color = (style?.color as string) || '#0052CC')}
     >
-      {label || issueKey} 🔗
+      {label || issueKey}
     </a>
   );
 };

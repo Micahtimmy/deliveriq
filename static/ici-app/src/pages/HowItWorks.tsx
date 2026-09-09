@@ -26,7 +26,7 @@ export const HowItWorks: React.FC = () => {
         <TabList>
           <Tab>ICI Scoring Methodology</Tab>
           <Tab>Portfolio & Program Management</Tab>
-          <Tab>AI Executive Intelligence</Tab>
+          <Tab>Executive Briefing Synthesis</Tab>
         </TabList>
 
         {/* TAB 1: ICI SCORING */}
@@ -198,15 +198,15 @@ export const HowItWorks: React.FC = () => {
           </div>
         </TabPanel>
 
-        {/* TAB 3: AI EXECUTIVE INTELLIGENCE */}
+        {/* TAB 3: EXECUTIVE BRIEFING */}
         <TabPanel>
           <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
             <div style={{ background: '#FFFFFF', border: '1px solid #DFE1E6', borderRadius: '8px', padding: '20px' }}>
               <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#0747A6', marginTop: 0 }}>
-                AI Executive Digest Architecture
+                Executive Digest Architecture
               </h3>
               <p style={{ fontSize: '14px', color: '#42526E', lineHeight: '1.6' }}>
-                The <strong>ICI AI Executive Intelligence</strong> engine synthesizes raw multi-team Epic metrics, work allocation percentages, and blocker alerts into natural-language status briefings formatted specifically for executive leadership (VP of Engineering, CTO, CPO).
+                The <strong>Executive Briefing</strong> engine synthesizes raw multi-team Epic metrics, work allocation percentages, and blocker alerts into natural-language status briefings formatted specifically for executive leadership (VP of Engineering, CTO, CPO).
               </p>
               <div style={{ background: '#F4F5F7', padding: '16px', borderRadius: '6px', marginTop: '12px' }}>
                 <strong>Key Output Structure:</strong>

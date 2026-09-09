@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import Button from '@atlaskit/button';
 
 export type PageName =
   | 'selector'
@@ -38,15 +37,15 @@ export const NavBar: React.FC<NavBarProps> = ({
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   }
 
-  const navItems: { id: PageName; label: string; icon: string; condition?: boolean }[] = [
-    { id: 'selector', label: 'Select Team', icon: '🎯' },
-    { id: 'dashboard', label: 'Team ICI Leaderboard', icon: '📊', condition: hasDashboardData },
-    { id: 'epic-tracker', label: 'Epic Tracker', icon: '🚀' },
-    { id: 'iteration-progress', label: 'Iteration Progress', icon: '⚡' },
-    { id: 'art-sync', label: 'ART Sync', icon: '🚂' },
-    { id: 'delivery-insights', label: 'Delivery Insights', icon: '📈' },
-    { id: 'ai-briefings', label: 'AI Briefings', icon: '✨' },
-    { id: 'how-it-works', label: 'How It Works', icon: '📖' },
+  const navItems: { id: PageName; label: string; condition?: boolean }[] = [
+    { id: 'selector', label: 'Select Team' },
+    { id: 'dashboard', label: 'Team Dashboard', condition: hasDashboardData },
+    { id: 'epic-tracker', label: 'Epic Tracker' },
+    { id: 'iteration-progress', label: 'Iteration Progress' },
+    { id: 'art-sync', label: 'ART Sync' },
+    { id: 'delivery-insights', label: 'Delivery Insights' },
+    { id: 'ai-briefings', label: 'Executive Briefings' },
+    { id: 'how-it-works', label: 'Methodology' },
   ];
 
   return (
@@ -55,43 +54,40 @@ export const NavBar: React.FC<NavBarProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '12px 20px',
-        marginBottom: '28px',
+        padding: '10px 18px',
+        marginBottom: '24px',
         background: 'var(--nav-bg)',
-        backdropFilter: 'blur(16px)',
-        borderRadius: '14px',
+        borderRadius: '6px',
         border: '1px solid var(--border-color)',
-        boxShadow: '0 4px 16px rgba(9, 30, 66, 0.06)',
+        boxShadow: '0 1px 3px rgba(9, 30, 66, 0.08)',
         flexWrap: 'wrap',
         gap: '12px',
-        transition: 'background 0.3s ease, border-color 0.3s ease',
+        transition: 'background 0.2s ease, border-color 0.2s ease',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
         {/* Brand Logo Badge */}
         <div
           onClick={() => onNavigate('selector')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '10px',
-            background: 'linear-gradient(135deg, #0747A6 0%, #0052CC 100%)',
-            padding: '6px 14px',
-            borderRadius: '20px',
+            gap: '8px',
+            background: '#0747A6',
+            padding: '5px 12px',
+            borderRadius: '4px',
             cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(7, 71, 166, 0.25)',
-            transition: 'transform 0.2s ease',
+            transition: 'background 0.15s ease',
           }}
         >
-          <span style={{ fontSize: '15px' }}>⚡</span>
-          <span style={{ fontSize: '15px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.3px' }}>
-            ICI <span style={{ fontWeight: 400, opacity: 0.85 }}>Portfolio</span>
+          <span style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.2px' }}>
+            ICI Portfolio
           </span>
           <span className="status-dot green" title="System Active & Connected" />
         </div>
 
         {/* Navigation Items */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap' }}>
           {navItems.map(item => {
             if (item.condition === false) return null;
             const isActive = currentPage === item.id;
@@ -100,71 +96,63 @@ export const NavBar: React.FC<NavBarProps> = ({
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
                 style={{
-                  background: isActive ? 'linear-gradient(135deg, #0052CC 0%, #0747A6 100%)' : 'transparent',
+                  background: isActive ? '#0052CC' : 'transparent',
                   color: isActive ? '#FFFFFF' : 'var(--nav-text)',
                   border: 'none',
-                  borderRadius: '8px',
-                  padding: '8px 14px',
+                  borderRadius: '4px',
+                  padding: '6px 12px',
                   fontSize: '13px',
-                  fontWeight: isActive ? 700 : 600,
+                  fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
-                  display: 'flex',
+                  display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isActive ? '0 2px 6px rgba(0, 82, 204, 0.3)' : 'none',
+                  transition: 'background 0.15s ease, color 0.15s ease',
                 }}
               >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
+                {item.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
           title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
           style={{
-            background: theme === 'dark' ? '#334155' : '#EBECF0',
-            color: theme === 'dark' ? '#F8FAFC' : '#172B4D',
+            background: 'transparent',
+            color: 'var(--nav-text)',
             border: '1px solid var(--border-color)',
-            borderRadius: '20px',
-            padding: '6px 14px',
+            borderRadius: '4px',
+            padding: '5px 10px',
             fontSize: '12px',
-            fontWeight: 700,
+            fontWeight: 600,
             cursor: 'pointer',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px',
-            transition: 'all 0.2s ease',
           }}
         >
-          <span>{theme === 'light' ? '🌙 Dark' : '☀️ Light'}</span>
+          {theme === 'light' ? 'Dark Mode' : 'Light Mode'}
         </button>
 
         <button
           onClick={() => onNavigate('settings')}
           style={{
-            background: currentPage === 'settings' ? 'linear-gradient(135deg, #0052CC 0%, #0747A6 100%)' : 'var(--card-bg)',
+            background: currentPage === 'settings' ? '#0052CC' : 'transparent',
             color: currentPage === 'settings' ? '#FFFFFF' : 'var(--nav-text)',
             border: currentPage === 'settings' ? 'none' : '1px solid var(--border-color)',
-            borderRadius: '8px',
-            padding: '8px 14px',
-            fontSize: '13px',
+            borderRadius: '4px',
+            padding: '5px 12px',
+            fontSize: '12px',
             fontWeight: 600,
             cursor: 'pointer',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
-            gap: '6px',
-            transition: 'all 0.2s ease',
           }}
         >
-          <span>⚙️</span>
-          <span>Settings</span>
+          Settings
         </button>
       </div>
     </nav>

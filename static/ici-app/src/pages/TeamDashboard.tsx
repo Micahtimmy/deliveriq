@@ -4,6 +4,7 @@ import Avatar from '@atlaskit/avatar';
 import Button from '@atlaskit/button';
 import EmptyState from '@atlaskit/empty-state';
 import Tooltip from '@atlaskit/tooltip';
+import Badge from '@atlaskit/badge';
 import { safeInvoke as invoke } from '../utils/bridge';
 import { TierBadge } from '../components/TierBadge';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -120,8 +121,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
     const hasRegressionSignal = person.signals.regression.totalRegressions >= 3;
     const hasDateSignal = person.signals.dateChanges.unauthorized.length > 0;
 
-    const rankDisplay =
-      person.rank === 1 ? '🥇 #1' : person.rank === 2 ? '🥈 #2' : person.rank === 3 ? '🥉 #3' : `#${person.rank}`;
+    const rankDisplay = `#${person.rank}`;
 
     return {
       key: person.accountId,
@@ -197,24 +197,24 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
         {
           key: 'signals',
           content: (
-            <div style={{ display: 'flex', gap: '6px', fontSize: '14px' }}>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
               {hasCarryOverSignal && (
                 <Tooltip content={`Carry-over rate: ${person.signals.carryOver.rate}%`}>
-                  <span>⚠️</span>
+                  <Badge appearance="removed">Carry-Over</Badge>
                 </Tooltip>
               )}
               {hasRegressionSignal && (
                 <Tooltip content={`Review Regressions: ${person.signals.regression.totalRegressions}`}>
-                  <span>🔄</span>
+                  <Badge appearance="primary">Regression</Badge>
                 </Tooltip>
               )}
               {hasDateSignal && (
                 <Tooltip content={`Unauthorized Due Date Changes: ${person.signals.dateChanges.unauthorized.length}`}>
-                  <span>📅</span>
+                  <Badge appearance="important">Date Change</Badge>
                 </Tooltip>
               )}
               {!hasCarryOverSignal && !hasRegressionSignal && !hasDateSignal && (
-                <span style={{ color: '#36B37E', fontWeight: 700 }}>✓ Clean</span>
+                <span style={{ color: '#006644', fontWeight: 600, fontSize: '12px' }}>Clean</span>
               )}
             </div>
           ),
@@ -239,11 +239,11 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
           }}
         >
           <div>
-            <h1 style={{ fontSize: '26px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.5px' }}>
-              📊 {data.boardName}
+            <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#FFFFFF', letterSpacing: '-0.3px' }}>
+              {data.boardName}
             </h1>
-            <p style={{ margin: '6px 0 0 0', color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px', fontWeight: 500 }}>
-              Sprints: <strong>{data.sprintNames.join(', ')}</strong> • {totalEngineers} team members ranked
+            <p style={{ margin: '6px 0 0 0', color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px', fontWeight: 400 }}>
+              Sprints: <strong>{data.sprintNames.join(', ')}</strong> &bull; {totalEngineers} team members ranked
             </p>
           </div>
 
@@ -252,7 +252,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
               Computed: {new Date(data.computedAt).toLocaleTimeString()}
             </span>
             <button className="btn-secondary-glass" onClick={handleRefresh}>
-              🔄 Refresh Data
+              Refresh Data
             </button>
           </div>
         </div>
@@ -286,13 +286,13 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
             });
           }}
         >
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#5E6C84', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-            Team Avg ICI Score (Click to trace)
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5E6C84', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Team Avg ICI Score
           </div>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#0052CC', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+          <div style={{ fontSize: '32px', fontWeight: 700, color: '#0052CC', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
             {teamAvgICI}
           </div>
-          <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>Out of 108 Max Composite Score</div>
+          <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 400 }}>Out of 108 Max Composite Score</div>
         </div>
 
         <div
@@ -319,13 +319,13 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
             });
           }}
         >
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#5E6C84', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-            Work Delivered (Click to trace)
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5E6C84', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Work Delivered
           </div>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#00875A', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
-            {totalPoints} <span style={{ fontSize: '16px', fontWeight: 600 }}>pts</span>
+          <div style={{ fontSize: '32px', fontWeight: 700, color: '#00875A', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+            {totalPoints} <span style={{ fontSize: '16px', fontWeight: 500 }}>pts</span>
           </div>
-          <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>{totalResolved} resolved Jira tasks</div>
+          <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 400 }}>{totalResolved} resolved Jira tasks</div>
         </div>
 
         <div
@@ -352,13 +352,13 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
             });
           }}
         >
-          <div style={{ fontSize: '11px', fontWeight: 800, color: '#5E6C84', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-            Team On-Time Rate (Click to trace)
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#5E6C84', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            Team On-Time Rate
           </div>
-          <div style={{ fontSize: '32px', fontWeight: 800, color: '#FF8B00', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+          <div style={{ fontSize: '32px', fontWeight: 700, color: '#FF8B00', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
             {teamOnTimeRate !== null ? `${teamOnTimeRate}%` : 'N/A'}
           </div>
-          <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>
+          <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 400 }}>
             {totalOnTimeCount}/{totalOnTimeEligible} tasks on schedule
           </div>
         </div>
@@ -400,7 +400,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
       {/* Tier Distribution Bar */}
       <div className="glass-card" style={{ padding: '20px' }}>
         <div style={{ fontSize: '14px', fontWeight: 700, color: '#172B4D', marginBottom: '12px' }}>
-          🎯 Team Performance Tier Distribution
+          Team Performance Tier Distribution
         </div>
         <div style={{ display: 'flex', gap: '24px', fontSize: '13px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -412,7 +412,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
             <span><strong>On Track:</strong> {tierCounts.onTrack}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ color: '#FFAB00' }}>🟡</span>
+            <span className="status-dot yellow" />
             <span><strong>Below Target:</strong> {tierCounts.belowTarget}</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

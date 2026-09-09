@@ -1,29 +1,94 @@
-import { invoke as forgeInvoke } from '@forge/bridge';
 import { TeamScoreResult } from '../types/scoring';
 import { JiraBoard, JiraSprint } from '../types/jira';
-import { EpicSummary } from '../types/portfolio';
-
+import { EpicSummary, TeamGroup } from '../types/portfolio';
+import { getCacheKey, getClientCache, setClientCache, invalidateClientCache } from './cache';
 
 // Detect if running in a standalone browser window (outside Forge iframe)
-const isStandalone = typeof window !== 'undefined' && window.parent === window;
+const isStandalone = typeof window !== 'undefined' && (window.parent === window || !('__forge_bridge__' in window));
+
+const CACHEABLE_COMMANDS = new Set([
+  'getBoards',
+  'getSprints',
+  'getSettings',
+  'getSavedTeamGroups',
+  'getPortfolioData',
+  'getARTSyncData',
+  'getTeamScores',
+]);
 
 export async function safeInvoke<T = unknown>(
   command: string,
   payload?: Record<string, unknown>
 ): Promise<{ success: boolean; data?: T; error?: string }> {
-  if (isStandalone) {
-    console.log(`[Standalone Mode] Mocking invoke('${command}')`, payload);
-    return mockInvoke(command, payload) as { success: boolean; data?: T; error?: string };
+  const forceRefresh = Boolean(payload?.forceRefresh);
+  const cacheKey = getCacheKey(command, payload);
+
+  // Invalidate on mutations
+  if (command === 'saveTeamGroup' || command === 'deleteTeamGroup') {
+    invalidateClientCache('getSavedTeamGroups');
+    invalidateClientCache('getPortfolioData');
+  } else if (command === 'saveSettings') {
+    invalidateClientCache('getSettings');
+  } else if (command === 'clearCache') {
+    invalidateClientCache();
   }
 
-  try {
-    const result = await forgeInvoke<T>(command, payload);
-    return result as { success: boolean; data?: T; error?: string };
-  } catch (e) {
-    console.warn(`[Forge Bridge Error] Falling back to mock for '${command}':`, e);
-    return mockInvoke(command, payload) as { success: boolean; data?: T; error?: string };
+  // Check client cache if cacheable and not forceRefresh
+  if (!forceRefresh && CACHEABLE_COMMANDS.has(command)) {
+    const cachedData = getClientCache<T>(cacheKey);
+    if (cachedData !== null) {
+      return { success: true, data: cachedData };
+    }
   }
+
+  let response: { success: boolean; data?: T; error?: string };
+
+  if (isStandalone) {
+    response = mockInvoke(command, payload) as { success: boolean; data?: T; error?: string };
+  } else {
+    try {
+      const { invoke: forgeInvoke } = await import('@forge/bridge');
+      const result = await forgeInvoke<T>(command, payload);
+      response = result as { success: boolean; data?: T; error?: string };
+    } catch (e) {
+      console.warn(`[Forge Bridge Error] Falling back to mock for '${command}':`, e);
+      response = mockInvoke(command, payload) as { success: boolean; data?: T; error?: string };
+    }
+  }
+
+  // Cache successful responses for cacheable queries
+  if (response.success && response.data !== undefined && CACHEABLE_COMMANDS.has(command)) {
+    setClientCache(cacheKey, response.data);
+  }
+
+  return response;
 }
+
+
+// In-memory mock storage for standalone dev/demo
+let mockSavedTeamGroups: TeamGroup[] = [
+  {
+    id: 'preset-core-squad',
+    name: 'Core Platform Squad',
+    description: 'Core Engineering & Infrastructure Boards',
+    boardIds: [101, 104],
+    projectKeys: ['CORE'],
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'preset-mobile-squad',
+    name: 'Mobile & Frontline Squad',
+    description: 'Mobile App Revamp and Cross-Platform Experience',
+    boardIds: [102],
+    projectKeys: ['MOB'],
+    createdAt: new Date().toISOString(),
+  },
+];
+
+let mockSettings = {
+  authorizedApproverId: 'Sarah Chen (Lead Engineer)',
+  storyPointsField: 'customfield_10016',
+};
 
 function mockInvoke(command: string, payload?: Record<string, unknown>): { success: boolean; data?: unknown; error?: string } {
   switch (command) {
@@ -530,12 +595,142 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
       const teamName = (payload?.teamName as string) || 'All';
       const fiscalYear = (payload?.fiscalYear as string) || 'FY27';
       const quarter = (payload?.quarter as string) || 'Q2';
-      const iteration = (payload?.iteration as string) || 'Iteration 3';
+      const iteration = (payload?.iteration as string) || 'Iteration 4';
       const sprintState = (payload?.sprintState as string) || 'All';
       const selectedFeatureKey = (payload?.featureKey as string) || 'ALL';
 
       const mockTaskPool = [
-        // Feature 1: TELEPRESENCE (ISW ACADEMY)
+        // Feature 1: Platform Engineering Team (Matching sample art sync board)
+        {
+          epicKey: 'Improve Security Observability & Respond Proactively to Security Incidents',
+          epicSummary: 'Improve Security Observability & Respond Proactively to Security Incidents',
+          taskKey: 'FINCH-201',
+          taskSummary: 'Rollout Service to Service Communications from Non-Transaction Apps to Finch Transaction Apps',
+          acceptanceCriteria: 'All Finch transaction applications should communicate with other Kubernetes applications via direct service to service calls',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 8,
+          assigneeName: 'Marcus Vance',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+        {
+          epicKey: 'Improve Security Observability & Respond Proactively to Security Incidents',
+          epicSummary: 'Improve Security Observability & Respond Proactively to Security Incidents',
+          taskKey: 'AWAF-102',
+          taskSummary: 'Setup Paydirect online VS AWAF policy for Blocking mode',
+          acceptanceCriteria: 'Have a final review of the policy\'s learning. Engage all relevant stakeholders before transitioning to blocking Enforcement mode',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 5,
+          assigneeName: 'Sarah Chen',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+        {
+          epicKey: 'Improve Security Observability & Respond Proactively to Security Incidents',
+          epicSummary: 'Improve Security Observability & Respond Proactively to Security Incidents',
+          taskKey: 'WEBPAY-301',
+          taskSummary: 'Transition WebPay VS AWAF policy to Blocking mode',
+          acceptanceCriteria: 'Have a final review of the policy\'s learning. Engage all relevant stakeholders before transitioning to blocking Enforcement mode',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 8,
+          assigneeName: 'Alex Rivera',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+        {
+          epicKey: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
+          epicSummary: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
+          taskKey: 'JIRA-401',
+          taskSummary: 'Conduct POC for Jira Deployment Tracking',
+          acceptanceCriteria: 'Integrate Jira Deployment Tracking into our pipelines as a pilot test and document its features and capabilities',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 13,
+          assigneeName: 'Elena Rostova',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+        {
+          epicKey: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
+          epicSummary: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
+          taskKey: 'MOB-502',
+          taskSummary: 'Conduct POC for mobile security scanning (App Knox)',
+          acceptanceCriteria: 'Integrate AppKnox Security Scanning into one mobile pipeline',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 8,
+          assigneeName: 'Sarah Chen',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+        {
+          epicKey: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
+          epicSummary: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
+          taskKey: 'ING-603',
+          taskSummary: 'Create Internet-Facing Ingress Domain for UAT (uat.isw.la)',
+          acceptanceCriteria: 'The ingress class for this domain would be our previous nginx-controller (nginx)',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 8,
+          assigneeName: 'David Kim',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+        {
+          epicKey: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
+          epicSummary: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
+          taskKey: 'CIL-701',
+          taskSummary: 'Enforce Cilium Network Policies across transaction microservices',
+          acceptanceCriteria: 'Validate L3/L4 & L7 network policies across transaction microservices in lower environments',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 5,
+          assigneeName: 'Marcus Vance',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+        {
+          epicKey: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
+          epicSummary: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
+          taskKey: 'CIL-702',
+          taskSummary: 'Validate Multi-Region Kubernetes Cluster Mesh peering',
+          acceptanceCriteria: 'Establish encrypted wireguard mesh tunnel across AWS & Azure primary clusters',
+          status: 'Done',
+          statusCategory: 'Done' as const,
+          teamName: 'Platform Engineering Team',
+          storyPoints: 3,
+          assigneeName: 'David Kim',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
+        },
+
+        // Feature 2: TELEPRESENCE (ISW ACADEMY) (Workplace Productivity)
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
           epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
@@ -546,7 +741,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 5,
-          assigneeName: 'Sarah Chen'
+          assigneeName: 'Sarah Chen',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
@@ -558,7 +757,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 8,
-          assigneeName: 'Alex Rivera'
+          assigneeName: 'Alex Rivera',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
@@ -570,7 +773,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 13,
-          assigneeName: 'Marcus Vance'
+          assigneeName: 'Marcus Vance',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
@@ -582,7 +789,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 5,
-          assigneeName: 'Elena Rostova'
+          assigneeName: 'Elena Rostova',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
@@ -594,7 +805,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 8,
-          assigneeName: 'Sarah Chen'
+          assigneeName: 'Sarah Chen',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
@@ -606,7 +821,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'Done' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 13,
-          assigneeName: 'Alex Rivera'
+          assigneeName: 'Alex Rivera',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
@@ -618,7 +837,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 8,
-          assigneeName: 'Marcus Vance'
+          assigneeName: 'Marcus Vance',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
         {
           epicKey: 'TELEPRESENCE (ISW ACADEMY)',
@@ -630,10 +853,14 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'Done' as const,
           teamName: 'Workplace Productivity',
           storyPoints: 13,
-          assigneeName: 'Sarah Chen'
+          assigneeName: 'Elena Rostova',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 3',
+          sprintState: 'Active',
         },
 
-        // Feature 2: SASE-SEC-200 (Security & Infrastructure)
+        // Feature 3: SASE-SEC-200 (Security & Infrastructure)
         {
           epicKey: 'SASE-SEC-200',
           epicSummary: 'Secure Access Service Edge (SASE) Zero-Trust Gateway Deployment',
@@ -644,7 +871,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'Done' as const,
           teamName: 'Security & Infrastructure',
           storyPoints: 8,
-          assigneeName: 'David Kim'
+          assigneeName: 'David Kim',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         },
         {
           epicKey: 'SASE-SEC-200',
@@ -656,7 +887,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'In Progress' as const,
           teamName: 'Security & Infrastructure',
           storyPoints: 5,
-          assigneeName: 'David Kim'
+          assigneeName: 'David Kim',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         },
         {
           epicKey: 'SASE-SEC-200',
@@ -668,10 +903,14 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Security & Infrastructure',
           storyPoints: 13,
-          assigneeName: 'Sarah Chen'
+          assigneeName: 'Sarah Chen',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         },
 
-        // Feature 3: PAY-ROUTER-300 (Core Platform)
+        // Feature 4: PAY-ROUTER-300 (Core Platform)
         {
           epicKey: 'PAY-ROUTER-300',
           epicSummary: 'Enterprise Multi-Channel Payment Routing Engine & Settlement',
@@ -682,7 +921,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'Done' as const,
           teamName: 'Core Platform',
           storyPoints: 13,
-          assigneeName: 'Alex Rivera'
+          assigneeName: 'Alex Rivera',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         },
         {
           epicKey: 'PAY-ROUTER-300',
@@ -694,7 +937,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'Done' as const,
           teamName: 'Core Platform',
           storyPoints: 8,
-          assigneeName: 'Marcus Vance'
+          assigneeName: 'Marcus Vance',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         },
         {
           epicKey: 'PAY-ROUTER-300',
@@ -706,10 +953,14 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'In Progress' as const,
           teamName: 'Core Platform',
           storyPoints: 13,
-          assigneeName: 'Elena Rostova'
+          assigneeName: 'Elena Rostova',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         },
 
-        // Feature 4: MOB-BIO-400 (Mobile Experience)
+        // Feature 5: MOB-BIO-400 (Mobile Experience)
         {
           epicKey: 'MOB-BIO-400',
           epicSummary: 'Customer Mobile Experience & Biometric ID Onboarding',
@@ -720,7 +971,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'Done' as const,
           teamName: 'Mobile Experience',
           storyPoints: 8,
-          assigneeName: 'Elena Rostova'
+          assigneeName: 'Elena Rostova',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         },
         {
           epicKey: 'MOB-BIO-400',
@@ -732,7 +987,11 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           statusCategory: 'To Do' as const,
           teamName: 'Mobile Experience',
           storyPoints: 8,
-          assigneeName: 'Sarah Chen'
+          assigneeName: 'Sarah Chen',
+          fiscalYear: 'FY27',
+          quarter: 'Q2',
+          iterationName: 'Iteration 4',
+          sprintState: 'Active',
         }
       ];
 
@@ -754,12 +1013,73 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
       });
       const features = Array.from(featureMap.values());
 
+      const sampleTeamNames = [
+        'Platform Engineering Team',
+        'Workplace Productivity',
+        'Core Platform',
+        'Mobile Experience',
+        'Security & Infrastructure',
+      ];
+
+      const isLiveOrCustomBoard = Boolean(teamName) && teamName !== 'All' && teamName !== 'All Teams' && !sampleTeamNames.includes(teamName);
+
       let tasks = mockTaskPool;
+      if (isLiveOrCustomBoard) {
+        // If a non-sample custom board has no mock data defined, return empty state with clear emptyReason
+        const tLower = teamName.toLowerCase().replace(/team|board|preset:?/gi, '').trim();
+        const matched = mockTaskPool.filter(t => {
+          const itemTeam = (t.teamName || '').toLowerCase().replace(/team|board/gi, '').trim();
+          return itemTeam === tLower || itemTeam.includes(tLower) || tLower.includes(itemTeam);
+        });
+
+        if (matched.length === 0) {
+          return {
+            success: true,
+            data: {
+              teamName,
+              fiscalYear,
+              quarter,
+              iteration,
+              sprintState,
+              epicsCommitted: 0,
+              tasksCommitted: 0,
+              tasksCompleted: 0,
+              iterationPerformance: 0,
+              storyPointsCommitted: 0,
+              storyPointsCompleted: 0,
+              iterationObjective: `No active iteration objective configured for ${teamName} in ${iteration}.`,
+              tasks: [],
+              features: [],
+              selectedFeatureKey,
+              allTeams: [
+                'Platform Engineering Team',
+                'Workplace Productivity',
+                'Core Platform',
+                'Mobile Experience',
+                'Security & Infrastructure',
+                teamName,
+              ],
+              emptyReason: `No active Epics or child tasks found for "${teamName}" in ${iteration} (${quarter} ${fiscalYear}). Please verify that tickets are assigned to active sprints and properly linked under parent Epics in this board's project.`,
+              burndownData: [],
+              iterationPerformanceHistory: [],
+              velocityTrend: [],
+              riskRegister: [],
+              teamPerformanceList: [],
+              isSampleData: false,
+            },
+          };
+        }
+        tasks = matched;
+      } else if (teamName && teamName !== 'All' && teamName !== 'All Teams') {
+        const tLower = teamName.toLowerCase().replace(/team|board|preset:?/gi, '').trim();
+        tasks = tasks.filter(t => {
+          const itemTeam = (t.teamName || '').toLowerCase().replace(/team|board/gi, '').trim();
+          return itemTeam === tLower || itemTeam.includes(tLower) || tLower.includes(itemTeam);
+        });
+      }
+
       if (selectedFeatureKey && selectedFeatureKey !== 'ALL') {
         tasks = tasks.filter(t => t.epicKey === selectedFeatureKey || t.epicSummary.includes(selectedFeatureKey));
-      }
-      if (teamName && teamName !== 'All' && teamName !== 'All Teams') {
-        tasks = tasks.filter(t => t.teamName === teamName || teamName.includes(t.teamName));
       }
       if (sprintState && sprintState !== 'All') {
         tasks = tasks.filter(t => (t.status === sprintState || (sprintState === 'Active' && t.status !== 'Done') || (sprintState === 'Closed' && t.status === 'Done')));
@@ -772,6 +1092,63 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
       const storyPointsCompleted = tasks.filter(t => t.statusCategory === 'Done').reduce((sum, t) => sum + t.storyPoints, 0);
       const iterationPerformance = tasksCommitted > 0 ? Math.round((tasksCompleted / tasksCommitted) * 100) : 0;
 
+      let iterationObjective = 'Enforce Cilium network policies across transaction apps in lower environments, validate Cluster Mesh, and establish mobile application security scanning.';
+      if (teamName.toLowerCase().includes('workplace')) {
+        iterationObjective = 'Deliver enterprise collaboration hardware integration, end-to-end testing, and civil works room alterations across all active workplace productivity workstreams.';
+      } else if (teamName.toLowerCase().includes('core')) {
+        iterationObjective = 'Deliver payment routing failover switch, ISO 20022 messaging schema, and real-time Kafka settlement ledger.';
+      } else if (teamName.toLowerCase().includes('mobile')) {
+        iterationObjective = 'Roll out NFC passport scanning, ISO 30107-3 compliant 3D facial liveness verification on iOS and Android.';
+      } else if (teamName.toLowerCase().includes('security')) {
+        iterationObjective = 'Deploy SASE Zero-Trust Gateway connectors across multi-cloud VPCs and pilot corporate device DLP.';
+      } else if (tasks.length === 0) {
+        iterationObjective = `No active iteration objective configured for ${teamName} in ${iteration}.`;
+      }
+
+      const burndownData = tasks.length > 0 ? [
+        { date: 'Aug 18', remaining: 58, ideal: 58 },
+        { date: 'Aug 20', remaining: 58, ideal: 48 },
+        { date: 'Aug 22', remaining: 52, ideal: 40 },
+        { date: 'Aug 24', remaining: 45, ideal: 30 },
+        { date: 'Aug 26', remaining: 46, ideal: 20 },
+        { date: 'Aug 28', remaining: 18, ideal: 10 },
+        { date: 'Aug 30', remaining: 0, ideal: 0 },
+      ] : [];
+
+      const iterationPerformanceHistory = tasks.length > 0 ? [
+        { iteration: 'Iteration 1', performance: 87 },
+        { iteration: 'Iteration 2', performance: 89 },
+        { iteration: 'Iteration 3', performance: 100 },
+        { iteration: 'Iteration 4', performance: 100 },
+      ] : [];
+
+      const velocityTrend = tasks.length > 0 ? [
+        { iteration: 'Iteration 1', committed: 112, completed: 86 },
+        { iteration: 'Iteration 2', committed: 75, completed: 67 },
+        { iteration: 'Iteration 3', committed: 122, completed: 122 },
+        { iteration: 'Iteration 4', committed: 58, completed: 58 },
+        { iteration: 'Iteration 5', committed: 28, completed: 0 },
+      ] : [];
+
+      const riskRegister = tasks.length > 0 ? [
+        { issueKey: 'PLAT-401', summary: 'Firewall NAT rule conflict on egress proxy', issueType: 'Task', status: 'In Progress', teamName: 'Platform Engineering Team' },
+        { issueKey: 'SEC-302', summary: 'Certificate rotation delay in secondary cluster', issueType: 'Bug', status: 'In Progress', teamName: 'Security & Infrastructure' },
+        { issueKey: 'NET-109', summary: 'Latency degradation on inter-region VPC peering', issueType: 'Risk', status: 'Under Investigation', teamName: 'Platform Engineering Team' },
+      ] : [];
+
+      const teamPerformanceList = [
+        { code: 'DB', name: 'Digital Banking', performance: 100 },
+        { code: 'DWP', name: 'Digital Workplace', performance: 100 },
+        { code: 'EAM', name: 'Enterprise Architecture', performance: 100 },
+        { code: 'IEP', name: 'Identity & Enterprise', performance: 100 },
+        { code: 'ADP', name: 'App Delivery & Platform', performance: 94 },
+        { code: 'COR', name: 'Core Platform', performance: 89 },
+        { code: 'RPA', name: 'Robotic Process Automation', performance: 88 },
+        { code: 'SAAP', name: 'Security & Access', performance: 82 },
+        { code: 'IAAP', name: 'Infrastructure & Cloud', performance: 80 },
+        { code: 'DAAP', name: 'Data & Analytics', performance: 57 },
+      ];
+
       return {
         success: true,
         data: {
@@ -780,28 +1157,51 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           quarter,
           iteration,
           sprintState,
-          epicsCommitted: uniqueEpics.length || 1,
+          epicsCommitted: uniqueEpics.length,
           tasksCommitted,
           tasksCompleted,
           iterationPerformance,
           storyPointsCommitted,
           storyPointsCompleted,
-          iterationObjective: 'Deliver enterprise collaboration hardware integration, end-to-end testing, and civil works room alterations across all active workplace productivity workstreams.',
+          iterationObjective,
           tasks,
           features,
           selectedFeatureKey,
-          allTeams: ['Workplace Productivity', 'Core Platform', 'Mobile Experience', 'Security & Infrastructure']
-        }
+          allTeams: [
+            'Platform Engineering Team',
+            'Workplace Productivity',
+            'Core Platform',
+            'Mobile Experience',
+            'Security & Infrastructure',
+          ],
+          burndownData,
+          iterationPerformanceHistory,
+          velocityTrend,
+          riskRegister,
+          teamPerformanceList,
+          emptyReason: tasks.length === 0 ? `No tasks found matching your filter selection for "${teamName}".` : undefined,
+          isSampleData: !isLiveOrCustomBoard,
+        },
       };
     }
 
     case 'getSettings':
       return {
         success: true,
-        data: { authorizedApproverId: '5b10ac8d82e05b22cc7d4ef5' },
+        data: { ...mockSettings },
       };
 
-    case 'saveSettings':
+    case 'saveSettings': {
+      if (payload) {
+        mockSettings = {
+          ...mockSettings,
+          authorizedApproverId: (payload.authorizedApproverId as string) ?? mockSettings.authorizedApproverId,
+          storyPointsField: (payload.storyPointsField as string) ?? mockSettings.storyPointsField,
+        };
+      }
+      return { success: true, data: { success: true } };
+    }
+
     case 'clearCache':
       return { success: true };
 

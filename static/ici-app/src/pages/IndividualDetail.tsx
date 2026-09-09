@@ -18,26 +18,26 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
   onBack,
 }) => {
   // Commitment Integrity Indicator
-  let integrityLine = '🔵 Solid Integrity';
+  let integrityLine = 'Solid Commitment Integrity';
   let integrityColor = '#0052CC';
 
   if (person.signals.dateChanges.unauthorized.length > 0) {
-    integrityLine = '⚠️ Non-compliant — unauthorized due date changes on record';
+    integrityLine = 'Non-compliant: Unauthorized due date changes on record';
     integrityColor = '#DE350B';
   } else if (
     (person.categories.onTime === null || person.categories.onTime >= 85) &&
     person.signals.carryOver.rate < 20
   ) {
-    integrityLine = '✅ High Commitment Integrity';
+    integrityLine = 'High Commitment Integrity';
     integrityColor = '#00875A';
   } else if (
     (person.categories.onTime === null || person.categories.onTime >= 70) &&
     person.signals.carryOver.rate < 35
   ) {
-    integrityLine = '🔵 Solid Integrity';
+    integrityLine = 'Solid Commitment Integrity';
     integrityColor = '#0052CC';
   } else {
-    integrityLine = '🟡 Variable Commitment Integrity';
+    integrityLine = 'Variable Commitment Integrity';
     integrityColor = '#FFAB00';
   }
 
@@ -229,7 +229,7 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
           <div style={{ margin: '4px 0', fontSize: '13px' }}>
             {person.signals.dateChanges.unauthorized.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span>⚠️ {person.signals.dateChanges.unauthorized.length} unauthorized due date changes made by assignee:</span>
+                <span style={{ fontWeight: 600, color: '#DE350B' }}>{person.signals.dateChanges.unauthorized.length} unauthorized due date changes made by assignee:</span>
                 {person.signals.dateChanges.unauthorized.map((d: { key: string; from: string; to: string }) => (
                   <span key={d.key} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                     <JiraIssueLink issueKey={d.key} /> ({d.from} → {d.to})

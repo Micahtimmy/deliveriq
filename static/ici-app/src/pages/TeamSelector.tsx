@@ -46,22 +46,24 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
     setLoading(true);
     setError(null);
     try {
-      // 1. Load Settings
-      const settingsRes = (await invoke('getSettings')) as {
-        success: boolean;
-        data?: { authorizedApproverId?: string };
-        error?: string;
-      };
+      // 1. Concurrently load Settings & Boards
+      const [settingsRes, boardsRes] = await Promise.all([
+        invoke('getSettings') as Promise<{
+          success: boolean;
+          data?: { authorizedApproverId?: string };
+          error?: string;
+        }>,
+        invoke('getBoards') as Promise<{
+          success: boolean;
+          data?: { boards: JiraBoard[]; storyPointsField: string };
+          error?: string;
+        }>,
+      ]);
+
       if (settingsRes.success && settingsRes.data?.authorizedApproverId) {
         setAuthorizedApproverId(settingsRes.data.authorizedApproverId);
       }
 
-      // 2. Load Boards
-      const boardsRes = (await invoke('getBoards')) as {
-        success: boolean;
-        data?: { boards: JiraBoard[]; storyPointsField: string };
-        error?: string;
-      };
       if (!boardsRes.success || !boardsRes.data) {
         throw new Error(boardsRes.error || 'Failed to fetch Jira boards');
       }
@@ -198,11 +200,11 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         {/* Hero Header */}
         <div className="hero-header">
-          <h1 style={{ fontSize: '26px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.5px' }}>
-            🎯 Select Team &amp; Sprint Range
+          <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#FFFFFF', letterSpacing: '-0.3px' }}>
+            Select Team &amp; Sprint Range
           </h1>
-          <p style={{ margin: '6px 0 0 0', color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px', fontWeight: 500 }}>
-            Choose an agile board and closed sprint evaluation period to calculate individual developer ICI scores.
+          <p style={{ margin: '6px 0 0 0', color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px', fontWeight: 400 }}>
+            Choose an agile board and closed sprint evaluation period to calculate contributor ICI scores.
           </p>
         </div>
 
@@ -228,8 +230,8 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
 
         <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
-            <label style={{ fontWeight: 700, display: 'block', marginBottom: '8px', color: '#172B4D', fontSize: '14px' }}>
-              📋 Select Jira Board
+            <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px', color: '#172B4D', fontSize: '13px' }}>
+              Select Jira Board
             </label>
             <Select
               options={boardOptions}
@@ -245,19 +247,19 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
               {loadingSprints ? (
                 <LoadingSpinner message="Loading board sprints from Jira..." />
               ) : sprints.length === 0 ? (
-                <SectionMessage title="No Sprints Found for this Board (Kanban / No Sprints)" appearance="information">
+                <SectionMessage title="No Sprints Found for this Board" appearance="information">
                   <p style={{ margin: '4px 0' }}>
                     This board does not have active or closed sprints (e.g. Kanban board or a new project without sprints).
                   </p>
                   <p style={{ margin: '4px 0' }}>
-                    For Kanban projects, use the <strong>Epic Tracker</strong> or <strong>DX Insights</strong> tabs in the top navigation bar to monitor program progress. To compute individual ICI scores, select a Scrum board with sprint history.
+                    For Kanban projects, use the <strong>Epic Tracker</strong> or <strong>Delivery Insights</strong> tabs to monitor program progress. To compute individual ICI scores, select a Scrum board with sprint history.
                   </p>
                 </SectionMessage>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
                   <div>
-                    <label style={{ fontWeight: 700, display: 'block', marginBottom: '8px', color: '#172B4D', fontSize: '14px' }}>
-                      📅 From Sprint
+                    <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px', color: '#172B4D', fontSize: '13px' }}>
+                      From Sprint
                     </label>
                     <Select
                       options={sprintOptions}
@@ -268,8 +270,8 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                   </div>
 
                   <div>
-                    <label style={{ fontWeight: 700, display: 'block', marginBottom: '8px', color: '#172B4D', fontSize: '14px' }}>
-                      🏁 To Sprint
+                    <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px', color: '#172B4D', fontSize: '13px' }}>
+                      To Sprint
                     </label>
                     <Select
                       options={sprintOptions}
@@ -289,15 +291,16 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
               style={{
                 width: '100%',
                 justifyContent: 'center',
-                padding: '12px 20px',
-                fontSize: '15px',
+                padding: '10px 18px',
+                fontSize: '14px',
+                fontWeight: 600,
                 opacity: !selectedBoard || !fromSprint || !toSprint || fetchingScores ? 0.6 : 1,
                 cursor: !selectedBoard || !fromSprint || !toSprint || fetchingScores ? 'not-allowed' : 'pointer',
               }}
               disabled={!selectedBoard || !fromSprint || !toSprint || fetchingScores}
               onClick={handleLoadScores}
             >
-              ⚡ Load Team Contribution Scores
+              Load Team Contribution Scores
             </button>
           </div>
         </div>
