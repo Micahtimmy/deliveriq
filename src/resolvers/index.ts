@@ -1,14 +1,24 @@
 import Resolver from '@forge/resolver';
-import { getBoards } from './boards';
+import { getBoards, getStoryPointsFields } from './boards';
 import { getSprints } from './sprints';
 import { getIssues } from './issues';
 import { getTeamScores } from './scores';
 import { storage } from '@forge/api';
+import { DimensionWeights } from '../types/scoring';
 
 import { getSavedTeamGroups, saveTeamGroup, deleteTeamGroup, getPortfolioData, getARTSyncData } from './portfolio';
 import { searchJiraUsers } from './users';
 
 const resolver = new Resolver();
+
+resolver.define('getStoryPointsFields', async () => {
+  try {
+    const fields = await getStoryPointsFields();
+    return { success: true, data: fields };
+  } catch (e) {
+    return { success: false, error: String(e) };
+  }
+});
 
 resolver.define('searchJiraUsers', async ({ payload }) => {
   try {
@@ -88,15 +98,16 @@ resolver.define('getTeamScores', async ({ payload }) => {
   try {
     const {
       boardId, boardName, sprintIds, sprintNames,
-      storyPointsField, authorizedApproverId
+      storyPointsField, authorizedApproverId, weights
     } = payload as {
       boardId: number; boardName: string; sprintIds: number[];
       sprintNames: string[]; storyPointsField: string; authorizedApproverId: string;
+      weights?: DimensionWeights;
     };
     const issues = await getIssues(boardId, sprintIds, storyPointsField);
     const result = await getTeamScores(
       boardId, boardName, sprintIds, sprintNames,
-      issues, storyPointsField, authorizedApproverId
+      issues, storyPointsField, authorizedApproverId, weights
     );
     return { success: true, data: result };
   } catch (e) {

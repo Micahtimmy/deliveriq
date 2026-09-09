@@ -19,6 +19,7 @@ import { EpicChildIssuesModal } from '../components/EpicChildIssuesModal';
 import { openJiraIssue, JiraIssueLink } from '../utils/jiraUrl';
 import { PaginationControls } from '../components/PaginationControls';
 import { KPITraceabilityModal, TraceableIssue } from '../components/KPITraceabilityModal';
+import { exportPortfolioEpicsToCSV } from '../utils/csvExport';
 
 interface PortfolioDashboardProps {
   initialTabIndex?: number;
@@ -758,19 +759,27 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                 </div>
               </div>
 
-              <input
-                type="text"
-                placeholder="Search Epics by key, summary, label..."
-                value={epicSearchTerm}
-                onChange={e => setEpicSearchTerm(e.target.value)}
-                style={{
-                  padding: '6px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid #C1C7D0',
-                  fontSize: '13px',
-                  width: '240px',
-                }}
-              />
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Search Epics by key, summary, label..."
+                  value={epicSearchTerm}
+                  onChange={e => setEpicSearchTerm(e.target.value)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '4px',
+                    border: '1px solid #C1C7D0',
+                    fontSize: '13px',
+                    width: '240px',
+                  }}
+                />
+                <Button
+                  appearance="subtle"
+                  onClick={() => exportPortfolioEpicsToCSV(filteredEpics, selectedGroup ? `TeamGroup_${selectedGroup}` : 'All_Boards')}
+                >
+                  Export CSV
+                </Button>
+              </div>
             </div>
 
             {/* Epics Table */}
@@ -994,8 +1003,16 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                     Executive report of accomplishments, delivered milestones, active risk callouts, and key delivery timelines for the filtered period ({selectedDateRange === 'all' ? 'All Time' : `Last ${selectedDateRange}`}).
                   </p>
                 </div>
-                <div style={{ background: '#E3FCEF', color: '#006644', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
-                  Report Generated: {new Date().toISOString().substring(0, 10)}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <Button
+                    appearance="subtle"
+                    onClick={() => exportPortfolioEpicsToCSV(filteredEpics, `Executive_Report_${selectedGroup || 'Portfolio'}`)}
+                  >
+                    Export Delivery Report (CSV)
+                  </Button>
+                  <div style={{ background: '#E3FCEF', color: '#006644', padding: '6px 14px', borderRadius: '20px', fontSize: '12px', fontWeight: 700 }}>
+                    Report Generated: {new Date().toISOString().substring(0, 10)}
+                  </div>
                 </div>
               </div>
 

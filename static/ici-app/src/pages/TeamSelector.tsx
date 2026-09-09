@@ -6,7 +6,7 @@ import SectionMessage from '@atlaskit/section-message';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorBanner } from '../components/ErrorBanner';
 import { JiraBoard, JiraSprint } from '../types/jira';
-import { TeamScoreResult } from '../types/scoring';
+import { DimensionWeights, TeamScoreResult } from '../types/scoring';
 
 interface TeamSelectorProps {
   onScoresLoaded: (result: TeamScoreResult, storyPointsField: string, approverId: string) => void;
@@ -28,6 +28,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
 
   const [boards, setBoards] = useState<JiraBoard[]>([]);
   const [storyPointsField, setStoryPointsField] = useState<string>('customfield_10016');
+  const [weights, setWeights] = useState<DimensionWeights | undefined>(undefined);
   const [selectedBoard, setSelectedBoard] = useState<SelectOption | null>(null);
 
   const [sprints, setSprints] = useState<JiraSprint[]>([]);
@@ -50,7 +51,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
       const [settingsRes, boardsRes] = await Promise.all([
         invoke('getSettings') as Promise<{
           success: boolean;
-          data?: { authorizedApproverId?: string };
+          data?: { authorizedApproverId?: string; storyPointsField?: string; weights?: DimensionWeights };
           error?: string;
         }>,
         invoke('getBoards') as Promise<{
@@ -60,8 +61,13 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
         }>,
       ]);
 
-      if (settingsRes.success && settingsRes.data?.authorizedApproverId) {
-        setAuthorizedApproverId(settingsRes.data.authorizedApproverId);
+      if (settingsRes.success && settingsRes.data) {
+        if (settingsRes.data.authorizedApproverId) {
+          setAuthorizedApproverId(settingsRes.data.authorizedApproverId);
+        }
+        if (settingsRes.data.weights) {
+          setWeights(settingsRes.data.weights);
+        }
       }
 
       if (!boardsRes.success || !boardsRes.data) {
@@ -70,7 +76,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
 
       const fetchedBoards = boardsRes.data.boards || [];
       setBoards(fetchedBoards);
-      setStoryPointsField(boardsRes.data.storyPointsField || 'customfield_10016');
+      setStoryPointsField(settingsRes.data?.storyPointsField || boardsRes.data.storyPointsField || 'customfield_10016');
 
       // Pre-select first board in standalone mode
       if (fetchedBoards.length > 0) {
@@ -151,6 +157,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
         sprintNames,
         storyPointsField,
         authorizedApproverId,
+        weights,
       })) as {
         success: boolean;
         data?: TeamScoreResult;

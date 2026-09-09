@@ -5,7 +5,7 @@ import {
 } from './constants';
 import { JiraIssue } from '../types/jira';
 import {
-  CategoryScores, PerformanceTier
+  CategoryScores, PerformanceTier, DimensionWeights
 } from '../types/scoring';
 
 // ─── HELPER: extract plain text from Jira comment body ───────────────────────
@@ -230,14 +230,23 @@ export function computeTeamAvgCollab(
 }
 
 // ─── 5. ICI COMPOSITE ────────────────────────────────────────────────────────
-export function computeICI(categories: CategoryScores): number {
+export function computeICI(categories: CategoryScores, customWeights?: DimensionWeights): number {
   // If on-time is null (insufficient data), use 60 as neutral placeholder
   const onTime = categories.onTime ?? 60;
+  const w = customWeights
+    ? {
+        onTime: customWeights.onTime / 100,
+        delivered: customWeights.delivered / 100,
+        quality: customWeights.quality / 100,
+        collaboration: customWeights.collaboration / 100,
+      }
+    : WEIGHTS;
+
   return Math.round(
-    onTime * WEIGHTS.onTime +
-    categories.delivered * WEIGHTS.delivered +
-    categories.quality * WEIGHTS.quality +
-    categories.collaboration * WEIGHTS.collaboration
+    onTime * w.onTime +
+    categories.delivered * w.delivered +
+    categories.quality * w.quality +
+    categories.collaboration * w.collaboration
   );
 }
 

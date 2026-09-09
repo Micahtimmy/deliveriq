@@ -12,6 +12,7 @@ import { ErrorBanner } from '../components/ErrorBanner';
 import { PersonScore, TeamScoreResult } from '../types/scoring';
 import { PaginationControls } from '../components/PaginationControls';
 import { KPITraceabilityModal, TraceableIssue } from '../components/KPITraceabilityModal';
+import { exportTeamScoresToCSV } from '../utils/csvExport';
 
 interface TeamDashboardProps {
   data: TeamScoreResult;
@@ -41,6 +42,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
   } | null>(null);
 
   const scores: PersonScore[] = data.scores || [];
+  const weights = data.weights;
 
   // Calculate Team-Wide Aggregates
   const totalEngineers = scores.length;
@@ -86,6 +88,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
         sprintNames: data.sprintNames,
         storyPointsField,
         authorizedApproverId,
+        weights,
       })) as { success: boolean; data?: TeamScoreResult; error?: string };
 
       if (res.success && res.data) {
@@ -102,16 +105,21 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
     return <LoadingSpinner message="Refreshing live Jira metrics..." />;
   }
 
+  const onTimeW = weights?.onTime ?? 35;
+  const delivW = weights?.delivered ?? 25;
+  const qualW = weights?.quality ?? 25;
+  const collabW = weights?.collaboration ?? 15;
+
   const head = {
     cells: [
       { key: 'rank', content: 'Rank', isSortable: true, width: 6 },
       { key: 'name', content: 'Engineer', isSortable: true, width: 22 },
       { key: 'ici', content: 'ICI Score', isSortable: true, width: 10 },
       { key: 'tier', content: 'Performance Tier', isSortable: true, width: 15 },
-      { key: 'onTime', content: 'On-Time (35%)', isSortable: true, width: 12 },
-      { key: 'delivered', content: 'Delivered (25%)', isSortable: true, width: 12 },
-      { key: 'quality', content: 'Quality (25%)', isSortable: true, width: 11 },
-      { key: 'collaboration', content: 'Collab (15%)', isSortable: true, width: 10 },
+      { key: 'onTime', content: `On-Time (${onTimeW}%)`, isSortable: true, width: 12 },
+      { key: 'delivered', content: `Delivered (${delivW}%)`, isSortable: true, width: 12 },
+      { key: 'quality', content: `Quality (${qualW}%)`, isSortable: true, width: 11 },
+      { key: 'collaboration', content: `Collab (${collabW}%)`, isSortable: true, width: 10 },
       { key: 'signals', content: 'Signals', isSortable: false, width: 8 },
     ],
   };
@@ -251,6 +259,13 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
             <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.8)' }}>
               Computed: {new Date(data.computedAt).toLocaleTimeString()}
             </span>
+            <button
+              className="btn-secondary-glass"
+              onClick={() => exportTeamScoresToCSV(scores, data.boardName, weights)}
+              title="Export all ranked engineer delivery metrics to CSV"
+            >
+              Export CSV
+            </button>
             <button className="btn-secondary-glass" onClick={handleRefresh}>
               Refresh Data
             </button>

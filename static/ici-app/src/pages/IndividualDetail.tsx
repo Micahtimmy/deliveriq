@@ -3,19 +3,21 @@ import Avatar from '@atlaskit/avatar';
 import Button from '@atlaskit/button';
 import SectionMessage from '@atlaskit/section-message';
 import { TierBadge } from '../components/TierBadge';
-import { PersonScore, ImprovementAction } from '../types/scoring';
+import { PersonScore, ImprovementAction, DimensionWeights } from '../types/scoring';
 import { JiraIssueLink } from '../utils/jiraUrl';
 
 interface IndividualDetailProps {
   person: PersonScore;
   totalTeamCount: number;
   onBack: () => void;
+  weights?: DimensionWeights;
 }
 
 export const IndividualDetail: React.FC<IndividualDetailProps> = ({
   person,
   totalTeamCount,
   onBack,
+  weights,
 }) => {
   // Commitment Integrity Indicator
   let integrityLine = 'Solid Commitment Integrity';
@@ -112,7 +114,7 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
         <div style={{ background: '#F4F5F7', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #0052CC' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontWeight: 700, color: '#172B4D' }}>On-Time Delivery</span>
-            <span style={{ fontSize: '12px', color: '#6B778C' }}>35% Weight</span>
+            <span style={{ fontSize: '12px', color: '#6B778C' }}>{weights?.onTime ?? 35}% Weight</span>
           </div>
           <div style={{ fontSize: '32px', fontWeight: 800, color: '#172B4D', marginBottom: '8px' }}>
             {person.categories.onTime !== null ? `${person.categories.onTime}%` : 'N/A'}
@@ -137,7 +139,7 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
         <div style={{ background: '#F4F5F7', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #00875A' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontWeight: 700, color: '#172B4D' }}>Delivered Work</span>
-            <span style={{ fontSize: '12px', color: '#6B778C' }}>25% Weight</span>
+            <span style={{ fontSize: '12px', color: '#6B778C' }}>{weights?.delivered ?? 25}% Weight</span>
           </div>
           <div style={{ fontSize: '32px', fontWeight: 800, color: '#172B4D', marginBottom: '8px' }}>
             {person.categories.delivered}%
@@ -151,7 +153,7 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
         <div style={{ background: '#F4F5F7', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #FF5630' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontWeight: 700, color: '#172B4D' }}>Quality Index</span>
-            <span style={{ fontSize: '12px', color: '#6B778C' }}>25% Weight</span>
+            <span style={{ fontSize: '12px', color: '#6B778C' }}>{weights?.quality ?? 25}% Weight</span>
           </div>
           <div style={{ fontSize: '32px', fontWeight: 800, color: '#172B4D', marginBottom: '8px' }}>
             {person.categories.quality}
@@ -165,7 +167,7 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
         <div style={{ background: '#F4F5F7', padding: '20px', borderRadius: '8px', borderLeft: '4px solid #6554C0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
             <span style={{ fontWeight: 700, color: '#172B4D' }}>Collaboration</span>
-            <span style={{ fontSize: '12px', color: '#6B778C' }}>15% Weight</span>
+            <span style={{ fontSize: '12px', color: '#6B778C' }}>{weights?.collaboration ?? 15}% Weight</span>
           </div>
           <div style={{ fontSize: '32px', fontWeight: 800, color: '#172B4D', marginBottom: '8px' }}>
             {person.categories.collaboration}%

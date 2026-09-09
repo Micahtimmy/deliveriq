@@ -1,6 +1,6 @@
 import { storage } from '@forge/api';
 import { JiraIssue } from '../types/jira';
-import { PersonScore, TeamScoreResult } from '../types/scoring';
+import { PersonScore, TeamScoreResult, DimensionWeights } from '../types/scoring';
 import {
   computeOnTimeScore, computePersonPoints, computeTeamAvgPoints,
   computeDeliveredScore, computeQualityScore, computeCollaborationScore,
@@ -17,9 +17,11 @@ export async function getTeamScores(
   sprintNames: string[],
   issues: JiraIssue[],
   storyPointsField: string,
-  authorizedApproverId: string
+  authorizedApproverId: string,
+  weights?: DimensionWeights
 ): Promise<TeamScoreResult> {
-  const cacheKey = `scores-${boardId}-${[...sprintIds].sort().join('-')}`;
+  const weightsKey = weights ? `${weights.onTime}-${weights.delivered}-${weights.quality}-${weights.collaboration}` : 'default';
+  const cacheKey = `scores-${boardId}-${[...sprintIds].sort().join('-')}-${weightsKey}`;
 
   // Check cache
   try {
@@ -66,7 +68,7 @@ export async function getTeamScores(
         collaboration: collabResult.score,
       };
 
-      const ici = computeICI(categories);
+      const ici = computeICI(categories, weights);
       const tier = getTier(ici);
 
       const carryOver = detectCarryOver(issues, accountId);
@@ -123,6 +125,7 @@ export async function getTeamScores(
     sprintNames,
     computedAt: new Date().toISOString(),
     scores,
+    weights,
   };
 
   // Write to cache

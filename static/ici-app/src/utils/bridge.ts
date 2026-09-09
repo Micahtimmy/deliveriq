@@ -88,6 +88,12 @@ let mockSavedTeamGroups: TeamGroup[] = [
 let mockSettings = {
   authorizedApproverId: 'Sarah Chen (Lead Engineer)',
   storyPointsField: 'customfield_10016',
+  weights: {
+    onTime: 35,
+    delivered: 25,
+    quality: 25,
+    collaboration: 15,
+  },
 };
 
 function mockInvoke(command: string, payload?: Record<string, unknown>): { success: boolean; data?: unknown; error?: string } {
@@ -1185,6 +1191,16 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
       };
     }
 
+    case 'getStoryPointsFields':
+      return {
+        success: true,
+        data: [
+          { id: 'customfield_10016', name: 'Story Points', isRecommended: true },
+          { id: 'customfield_10028', name: 'Story point estimate', isRecommended: false },
+          { id: 'customfield_10034', name: 'Estimation (SP)', isRecommended: false },
+        ],
+      };
+
     case 'getSettings':
       return {
         success: true,
@@ -1197,6 +1213,7 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           ...mockSettings,
           authorizedApproverId: (payload.authorizedApproverId as string) ?? mockSettings.authorizedApproverId,
           storyPointsField: (payload.storyPointsField as string) ?? mockSettings.storyPointsField,
+          weights: (payload.weights as typeof mockSettings.weights) ?? mockSettings.weights,
         };
       }
       return { success: true, data: { success: true } };

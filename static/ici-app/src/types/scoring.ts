@@ -72,6 +72,13 @@ export interface PersonScore {
   regressedIssues: Array<{ key: string; count: number }>;
 }
 
+export interface DimensionWeights {
+  onTime: number;        // percentage integer e.g. 35
+  delivered: number;     // percentage integer e.g. 25
+  quality: number;       // percentage integer e.g. 25
+  collaboration: number; // percentage integer e.g. 15
+}
+
 export interface TeamScoreResult {
   boardId?: number;
   boardName: string;
@@ -79,4 +86,5 @@ export interface TeamScoreResult {
   sprintNames: string[];
   computedAt: string;
   scores: PersonScore[];
+  weights?: DimensionWeights;
 }

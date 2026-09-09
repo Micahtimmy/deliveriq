@@ -83,6 +83,7 @@ export default function App() {
           <IndividualDetail
             person={selectedPerson}
             totalTeamCount={dashboardData.scores.length}
+            weights={dashboardData.weights}
             onBack={() => setCurrentPage('dashboard')}
           />
         )}

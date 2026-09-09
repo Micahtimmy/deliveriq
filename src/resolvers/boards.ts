@@ -61,3 +61,46 @@ export async function getBoards(): Promise<{
   };
 }
 
+export async function getStoryPointsFields(): Promise<Array<{ id: string; name: string; isRecommended?: boolean }>> {
+  try {
+    const res = await api.asUser().requestJira(
+      route`/rest/api/3/field`,
+      { headers: { Accept: 'application/json' } }
+    );
+    if (!res.ok) return [{ id: 'customfield_10016', name: 'Story Points (Default)', isRecommended: true }];
+    const fields = (await res.json()) as JiraFieldDefinition[];
+    
+    const candidateFields = fields
+      .filter(f => {
+        const n = f.name.toLowerCase();
+        return (
+          n.includes('story point') ||
+          n.includes('story points') ||
+          n.includes('estimate') ||
+          n.includes('estimation') ||
+          n.includes('points') ||
+          f.id === 'customfield_10016' ||
+          f.id === 'customfield_10028'
+        );
+      })
+      .map(f => {
+        const n = f.name.toLowerCase();
+        const isRecommended = n === 'story points' || n === 'story point estimate' || f.id === 'customfield_10016';
+        return {
+          id: f.id,
+          name: f.name,
+          isRecommended
+        };
+      });
+
+    if (candidateFields.length === 0) {
+      return [{ id: 'customfield_10016', name: 'Story Points (Default)', isRecommended: true }];
+    }
+
+    return candidateFields.sort((a, b) => (b.isRecommended ? 1 : 0) - (a.isRecommended ? 1 : 0));
+  } catch (e) {
+    console.warn('Error fetching Jira fields:', e);
+    return [{ id: 'customfield_10016', name: 'Story Points (Default)', isRecommended: true }];
+  }
+}
+

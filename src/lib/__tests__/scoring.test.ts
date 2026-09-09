@@ -134,7 +134,7 @@ describe('Scoring Engine - Core Categories', () => {
     expect(result.score).toBe(100); // 0-1 incidents = 100
   });
 
-  it('computeICI computes weighted score accurately', () => {
+  it('computeICI computes weighted score accurately with default weights', () => {
     const categories = {
       onTime: 100,
       delivered: 80,
@@ -143,6 +143,41 @@ describe('Scoring Engine - Core Categories', () => {
     };
     // 100*0.35 + 80*0.25 + 100*0.25 + 100*0.15 = 35 + 20 + 25 + 15 = 95
     expect(computeICI(categories)).toBe(95);
+  });
+
+  it('computeICI computes weighted score accurately with custom weights', () => {
+    const categories = {
+      onTime: 100,
+      delivered: 80,
+      quality: 100,
+      collaboration: 100,
+    };
+    const customWeights = {
+      onTime: 40,
+      delivered: 20,
+      quality: 20,
+      collaboration: 20,
+    };
+    // 100*0.40 + 80*0.20 + 100*0.20 + 100*0.20 = 40 + 16 + 20 + 20 = 96
+    expect(computeICI(categories, customWeights)).toBe(96);
+  });
+
+  it('computeICI applies neutral 60 on-time baseline when onTime is null with custom weights', () => {
+    const categories = {
+      onTime: null,
+      delivered: 80,
+      quality: 100,
+      collaboration: 100,
+    };
+    const customWeights = {
+      onTime: 50,
+      delivered: 20,
+      quality: 20,
+      collaboration: 10,
+    };
+    // onTime defaults to neutral 60:
+    // 60*0.50 + 80*0.20 + 100*0.20 + 100*0.10 = 30 + 16 + 20 + 10 = 76
+    expect(computeICI(categories, customWeights)).toBe(76);
   });
 
   it('getTier assigns correct performance tier', () => {
