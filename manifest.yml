@@ -1,7 +1,7 @@
 modules:
   jira:globalPage:
     - key: ici-dashboard-page
-      title: ICI Dashboard
+      title: DeliverIQ — Delivery & Contributor Intelligence
       layout: basic
       resource: ici-app
       resolver:

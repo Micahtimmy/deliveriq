@@ -45,7 +45,7 @@ export const NavBar: React.FC<NavBarProps> = ({
     { id: 'art-sync', label: 'ART Sync' },
     { id: 'delivery-insights', label: 'Delivery Insights' },
     { id: 'ai-briefings', label: 'Executive Briefings' },
-    { id: 'how-it-works', label: 'Methodology' },
+    { id: 'how-it-works', label: 'User Guide & Methodology' },
   ];
 
   return (
@@ -81,7 +81,7 @@ export const NavBar: React.FC<NavBarProps> = ({
           }}
         >
           <span style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.2px' }}>
-            ICI Portfolio
+            DeliverIQ
           </span>
           <span className="status-dot green" title="System Active & Connected" />
         </div>

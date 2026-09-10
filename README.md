@@ -1,14 +1,16 @@
-# ICI Dashboard — Program & Portfolio Management Platform
+# DeliverIQ — Engineering Delivery Intelligence & ART Sync Platform
 > **Atlassian Forge Custom UI App for Jira Cloud**  
 > *Objective, transparent engineering contributor intelligence, multi-team portfolio tracking, and Agile Release Train (ART) iteration synchronization.*
+
+📖 **[Read the Complete DeliverIQ User Guide (USER_GUIDE.md)](./USER_GUIDE.md)**
 
 ---
 
 ## 📌 Executive Summary
 
-The **Individual Contribution Index (ICI) Dashboard** is a production-grade Atlassian Forge application designed for Engineering Directors, Program Managers (RTEs), and Scrum Masters. It transforms raw Jira Software telemetry into actionable engineering insights, equitable individual contributor assessments, and multi-team release train visibility.
+**DeliverIQ** is a production-grade Atlassian Forge application designed for Engineering Directors, Program Managers (RTEs), and Scrum Masters. It transforms raw Jira Software telemetry into actionable engineering insights, equitable individual contributor assessments, and multi-team release train visibility.
 
-ICI eliminates subjectivity in performance reviews and sprint retrospectives by evaluating engineers across four foundational pillars while providing real-time Agile Release Train synchronization across complex multi-project portfolios.
+DeliverIQ eliminates subjectivity in performance reviews and sprint retrospectives by evaluating engineers across four foundational pillars while providing real-time Agile Release Train synchronization across complex multi-project portfolios.
 
 ---
 
@@ -29,13 +31,13 @@ ICI eliminates subjectivity in performance reviews and sprint retrospectives by 
 - **Interactive Traceability Modals:** Click any KPI card to drill down into the underlying Jira issues with direct hyperlinks.
 
 ### 2. 📊 Team Dashboard & Performance Ranking
-- **Objective Contributor Ranking:** Ranks all team members by composite ICI score across selected sprints.
+- **Objective Contributor Ranking:** Ranks all team members by composite DeliverIQ score across selected sprints.
 - **Performance Tiers:** Categorizes contributors into:
-  - 🟢 **Strong Contributor** ($\text{ICI} \ge 90$)
-  - 🔵 **On Track** ($75 \le \text{ICI} < 90$)
-  - 🟡 **Below Target** ($60 \le \text{ICI} < 75$)
-  - 🔴 **Needs Attention** ($\text{ICI} < 60$)
-- **Team-Wide Health Aggregates:** Average ICI, delivered velocity, on-time delivery rate, and quality incident density.
+  - 🟢 **Strong Contributor** ($\text{DeliverIQ} \ge 90$)
+  - 🔵 **On Track** ($75 \le \text{DeliverIQ} < 90$)
+  - 🟡 **Below Target** ($60 \le \text{DeliverIQ} < 75$)
+  - 🔴 **Needs Attention** ($\text{DeliverIQ} < 60$)
+- **Team-Wide Health Aggregates:** Average DeliverIQ, delivered velocity, on-time delivery rate, and quality incident density.
 - **CSV Data Export:** Export full contributor performance summaries and raw telemetry for enterprise reporting.
 - **One-Click Live Cache Invalidation:** Instantly refresh metrics against live Jira data.
 
@@ -58,8 +60,8 @@ ICI eliminates subjectivity in performance reviews and sprint retrospectives by 
 - **Dependency & Blocker Radar:** Identifies cross-issue links (*blocks* / *is blocked by*) and flags critical path bottlenecks.
 - **AI Executive Briefing Generator:** Synthesizes overall health, key highlights, top risks, and actionable recommendations with one-click clipboard copying.
 
-### 5. 📖 Methodology & Mathematical Proofs ("How It Works")
-- Interactive, transparent in-app documentation explaining every formula, weight, penalty band, and outlier capping rule.
+### 5. 📖 User Guide & Methodology ("User Guide & Methodology")
+- Interactive, transparent in-app documentation explaining every formula, weight, penalty band, outlier capping rule, and 1-on-1 coaching playbooks.
 
 ### 6. ⚙️ Governance & Configuration
 - **Custom Dimension Weights:** Customise the 4 scoring weights to match organizational priorities (must sum to 100%).
@@ -71,7 +73,7 @@ ICI eliminates subjectivity in performance reviews and sprint retrospectives by 
 
 ## 🧮 Mathematical Scoring Methodology
 
-$$\text{ICI} = w_{\text{onTime}} \cdot S_{\text{onTime}} + w_{\text{delivered}} \cdot S_{\text{delivered}} + w_{\text{quality}} \cdot S_{\text{quality}} + w_{\text{collab}} \cdot S_{\text{collab}}$$
+$$\text{DeliverIQ} = w_{\text{onTime}} \cdot S_{\text{onTime}} + w_{\text{delivered}} \cdot S_{\text{delivered}} + w_{\text{quality}} \cdot S_{\text{quality}} + w_{\text{collab}} \cdot S_{\text{collab}}$$
 
 ### 1. On-Time Delivery Score ($S_{\text{onTime}}$)
 Evaluates resolution date ($R$) against the issue due date ($D$):
@@ -122,6 +124,7 @@ ici-dashboard/
 ├── manifest.yml                          ← Atlassian Forge Manifest & Scopes
 ├── package.json                          ← Backend Dependencies & Test Scripts
 ├── tsconfig.json                         ← Backend TypeScript Config
+├── USER_GUIDE.md                         ← Comprehensive User Guide & Playbooks
 │
 ├── src/                                  ← Backend Resolvers & Scoring Engine
 │   ├── resolvers/
@@ -156,7 +159,7 @@ ici-dashboard/
         └── src/
             ├── App.tsx                   ← Primary Layout & Navigation Router
             ├── components/               ← Atlaskit UI Components & Modals
-            │   ├── NavBar.tsx
+            │   ├── NavBar.tsx            ← DeliverIQ Header & Navigation
             │   ├── TierBadge.tsx
             │   ├── LoadingSpinner.tsx
             │   ├── ErrorBanner.tsx
@@ -171,7 +174,7 @@ ici-dashboard/
             │   ├── IndividualDetail.tsx  ← Screen 3: Individual Contributor Radar
             │   ├── PortfolioDashboard.tsx← Screen 4: Multi-Team Portfolio Tracker
             │   ├── ARTSyncDashboard.tsx  ← Screen 5: Agile Release Train Sync
-            │   ├── HowItWorks.tsx        ← Screen 6: Calculation Methodology
+            │   ├── HowItWorks.tsx        ← Screen 6: User Guide & Methodology
             │   └── Settings.tsx          ← Screen 7: Governance & Configuration
             └── utils/
                 ├── bridge.ts             ← Safe Forge invoke bridge
