@@ -31,39 +31,41 @@ ICI eliminates subjectivity in performance reviews and sprint retrospectives by 
 ### 2. 📊 Team Dashboard & Performance Ranking
 - **Objective Contributor Ranking:** Ranks all team members by composite ICI score across selected sprints.
 - **Performance Tiers:** Categorizes contributors into:
-  - 🟢 **Strong Contributor** (ICI ≥ 85)
-  - 🔵 **On Track** (70 ≤ ICI < 85)
-  - 🟡 **Below Target** (55 ≤ ICI < 70)
-  - 🔴 **Needs Attention** (ICI < 55)
+  - 🟢 **Strong Contributor** ($\text{ICI} \ge 90$)
+  - 🔵 **On Track** ($75 \le \text{ICI} < 90$)
+  - 🟡 **Below Target** ($60 \le \text{ICI} < 75$)
+  - 🔴 **Needs Attention** ($\text{ICI} < 60$)
 - **Team-Wide Health Aggregates:** Average ICI, delivered velocity, on-time delivery rate, and quality incident density.
+- **CSV Data Export:** Export full contributor performance summaries and raw telemetry for enterprise reporting.
 - **One-Click Live Cache Invalidation:** Instantly refresh metrics against live Jira data.
 
 ### 3. 🔍 Individual Contributor Deep-Dive
 - **Four-Pillar Radar Breakdown:**
-  - ⏱️ **On-Time Delivery (35% default weight):** Resolution vs. sprint end dates and due dates.
-  - 🚀 **Delivered Velocity (35% default weight):** Story points completed normalized against team average.
-  - 🛡️ **Work Quality (20% default weight):** Defect density, regressions, and reopened tickets.
-  - 🤝 **Collaboration & Reviews (10% default weight):** PR/code review comments and cross-ticket technical guidance.
+  - ⏱️ **On-Time Delivery (35% default weight):** Resolution vs. committed due dates for due-dated tasks.
+  - 🚀 **Delivered Velocity (25% default weight):** Story points resolved normalized against team average (capped at 120%).
+  - 🛡️ **Work Quality (25% default weight):** Incident-banded penalty evaluation (reopened tickets, review regressions, and linked defect density).
+  - 🤝 **Collaboration & Reviews (15% default weight):** Substantive comments ($>20$ chars) on colleagues' tickets normalized against team average (capped at 120%).
 - **Behavioral Signal Detection:**
   - **Carry-Over Analysis:** Detects sprint churn and tickets repeatedly carried across multiple sprints.
-  - **Status Regression Engine:** Flags tickets moved backwards (e.g., QA → In Progress, Done → Reopened).
+  - **Status Regression Engine:** Flags tickets moved backwards (e.g., In Review $\to$ In Progress / Active).
   - **Unauthorized Due Date Drift:** Identifies due date changes made without manager/approver authorization.
-- **Automated Coaching Suggestions:** Generates targeted, positive, constructive recommendations with linked Jira keys.
+- **Automated Coaching Suggestions:** Generates targeted, constructive recommendations linked to specific Jira keys.
 
 ### 4. 🚀 Multi-Team Portfolio Tracker & AI Executive Briefings
-- **Multi-Board Preset Manager:** Save and manage multi-team groupings (e.g. *Payments Squad*, *Core Platform ART*, *Consumer Mobile*).
+- **Multi-Board Preset Manager:** Save and manage multi-team groupings (e.g., *Payments Squad*, *Core Platform ART*, *Consumer Mobile*).
 - **Cross-Project Epic Hierarchy:** Visual progress bars, story point rollups, and child issue completion rates across Jira projects.
 - **Work Effort Allocation Breakdown:** Real-time distribution of effort across *Features*, *Tech Debt*, *Bugs*, and *Maintenance*.
-- **Dependency & Blocker Radar:** Identifies cross-issue links (blocks / is blocked by) and flags critical path bottlenecks.
+- **Dependency & Blocker Radar:** Identifies cross-issue links (*blocks* / *is blocked by*) and flags critical path bottlenecks.
 - **AI Executive Briefing Generator:** Synthesizes overall health, key highlights, top risks, and actionable recommendations with one-click clipboard copying.
 
 ### 5. 📖 Methodology & Mathematical Proofs ("How It Works")
-- Interactive, transparent documentation explaining every formula, weight, penalty curve, and outlier capping rule.
+- Interactive, transparent in-app documentation explaining every formula, weight, penalty band, and outlier capping rule.
 
 ### 6. ⚙️ Governance & Configuration
-- Auto-discovery of custom story point fields (e.g. `customfield_10016`).
-- Selection of Authorized Due Date Approver with Jira user typeahead search.
-- Configurable caching TTLs and storage persistence via Atlassian Forge Storage.
+- **Custom Dimension Weights:** Customise the 4 scoring weights to match organizational priorities (must sum to 100%).
+- **Story Points Field Auto-Discovery:** Automatically scans Jira fields for custom story point IDs (e.g. `customfield_10016`, `customfield_10028`).
+- **Authorized Approver Configuration:** Search and designate authorized managers for due date modifications.
+- **Configurable Caching:** Forge Storage persistence with 60-minute default TTL and manual purge options.
 
 ---
 
@@ -71,18 +73,45 @@ ICI eliminates subjectivity in performance reviews and sprint retrospectives by 
 
 $$\text{ICI} = w_{\text{onTime}} \cdot S_{\text{onTime}} + w_{\text{delivered}} \cdot S_{\text{delivered}} + w_{\text{quality}} \cdot S_{\text{quality}} + w_{\text{collab}} \cdot S_{\text{collab}}$$
 
-### Dynamic Weight Rebalancing
-When a contributor has fewer than 2 issues with valid due dates, the on-time metric is marked `insufficient_data` ($S_{\text{onTime}} = \text{null}$) and its 35% weight is automatically and proportionally redistributed among the remaining three categories:
+### 1. On-Time Delivery Score ($S_{\text{onTime}}$)
+Evaluates resolution date ($R$) against the issue due date ($D$):
 
-$$w_i' = w_i \times \frac{100}{100 - w_{\text{onTime}}}$$
+$$S_{\text{onTime}} = \min\left(\text{Round}\left(\frac{\text{OnTimeIssues}}{\text{EligibleIssues}} \times 100\right), \, 100\right)$$
 
-### Delivered Velocity Score
+*Requirement:* Contributor must have $\ge 3$ eligible due-dated tasks (`MIN_DATED_ISSUES = 3`). If fewer than 3 tasks exist, $S_{\text{onTime}} = \text{null}$ and a neutral baseline of 60 is applied in standard scoring.
 
-$$S_{\text{delivered}} = \min\left(100, \, \max\left(0, \, 50 + 50 \times \frac{P_{\text{person}} - P_{\text{avg}}}{P_{\text{avg}}}\right)\right)$$
+### 2. Delivered Velocity Score ($S_{\text{delivered}}$)
+Measures story points completed relative to the team's average delivery:
 
-### Quality Score & Penalty Escalation
+$$S_{\text{delivered}} = \min\left(\text{Round}\left(\frac{P_{\text{person}}}{P_{\text{teamAvg}}} \times 100\right), \, 120\right)$$
 
-$$S_{\text{quality}} = \max(0, \, 100 - (\text{Reopens} \times 15 + \text{Regressions} \times 10))$$
+- High-velocity contributors can earn up to a **120% cap** (up to 30 composite index points under standard 25% weighting).
+- If team points are zero, a neutral score of 50 is assigned.
+- If story points are unpopulated on an issue, deterministic issue-type fallback weights apply (*Bug: 1, Task: 2, Story: 3, Epic: 5*).
+
+### 3. Work Quality Score ($S_{\text{quality}}$)
+Quality incidents are evaluated across three dimensions:
+
+$$\text{Incidents} = \text{ReopenedCount} + \text{ReviewRegressions} + \left\lceil\frac{\text{LinkedBugs}}{2}\right\rceil$$
+
+Scores are determined by calibrated incident thresholds:
+
+| Total Incidents | Quality Score | Evaluation |
+| :--- | :---: | :--- |
+| **0 – 1** | **100** | Exceptional delivery quality |
+| **2 – 3** | **85** | Minor acceptable churn |
+| **4 – 5** | **70** | Moderate quality friction |
+| **6 – 8** | **50** | Elevated defect density |
+| **9+** | **30** | Critical stability intervention required |
+
+### 4. Collaboration Score ($S_{\text{collab}}$)
+Evaluates code review and technical support on tickets assigned to teammates:
+
+$$S_{\text{collab}} = \min\left(\text{Round}\left(\frac{C_{\text{person}}}{C_{\text{teamAvg}}} \times 100\right), \, 120\right)$$
+
+- Counts comments $>20$ characters on issues where assignee $\ne$ contributor.
+- Capped at **120%** (up to 18 composite index points under standard 15% weighting).
+- If team collaboration average is zero, a neutral score of 50 is assigned.
 
 ---
 
@@ -90,25 +119,30 @@ $$S_{\text{quality}} = \max(0, \, 100 - (\text{Reopens} \times 15 + \text{Regres
 
 ```
 ici-dashboard/
-├── manifest.yml                          ← Atlassian Forge Manifest & Permissions
-├── package.json                          ← Backend Dependencies & Scripts
+├── manifest.yml                          ← Atlassian Forge Manifest & Scopes
+├── package.json                          ← Backend Dependencies & Test Scripts
 ├── tsconfig.json                         ← Backend TypeScript Config
 │
 ├── src/                                  ← Backend Resolvers & Scoring Engine
 │   ├── resolvers/
 │   │   ├── index.ts                      ← Resolver function dispatcher
-│   │   ├── boards.ts                     ← getBoards() & story point discovery
+│   │   ├── boards.ts                     ← getBoards() & story point auto-discovery
 │   │   ├── sprints.ts                    ← getSprints()
 │   │   ├── issues.ts                     ← getIssues() with pagination & changelog
 │   │   ├── scores.ts                     ← getTeamScores() & score caching
 │   │   ├── portfolio.ts                  ← getPortfolioData() & getARTSyncData()
 │   │   └── users.ts                      ← searchJiraUsers()
 │   ├── lib/
+│   │   ├── __tests__/                    ← Vitest Unit Test Suites
+│   │   │   ├── scoring.test.ts
+│   │   │   ├── signals.test.ts
+│   │   │   ├── improvements.test.ts
+│   │   │   └── portfolio.test.ts
 │   │   ├── scoring.ts                    ← Pure mathematical scoring functions
 │   │   ├── signals.ts                    ← Behavioral signal detectors
 │   │   ├── improvements.ts               ← Coaching suggestions generator
 │   │   ├── portfolio.ts                  ← Portfolio aggregation & AI briefing generator
-│   │   └── constants.ts                  ← Thresholds, weights, and status maps
+│   │   └── constants.ts                  ← Thresholds, weights, bands, and status maps
 │   └── types/
 │       ├── jira.ts                       ← Jira REST API & CHANGE-2046 types
 │       ├── scoring.ts                    ← Contributor score types
@@ -117,6 +151,7 @@ ici-dashboard/
 └── static/
     └── ici-app/                          ← React + TypeScript Custom UI Frontend
         ├── package.json                  ← Frontend Dependencies (Vite, Atlaskit, Recharts)
+        ├── tsconfig.json                 ← Frontend TypeScript Config
         ├── vite.config.ts                ← Build & Bundle Configuration
         └── src/
             ├── App.tsx                   ← Primary Layout & Navigation Router
@@ -131,22 +166,22 @@ ici-dashboard/
             │   ├── TeamPresetManager.tsx
             │   └── UserSelect.tsx
             ├── pages/                    ← Core Application Views
-            │   ├── TeamSelector.tsx
-            │   ├── TeamDashboard.tsx
-            │   ├── IndividualDetail.tsx
-            │   ├── PortfolioDashboard.tsx
-            │   ├── ARTSyncDashboard.tsx
-            │   ├── HowItWorks.tsx
-            │   └── Settings.tsx
+            │   ├── TeamSelector.tsx      ← Screen 1: Board & Sprint Picker
+            │   ├── TeamDashboard.tsx     ← Screen 2: Ranked Contributor Table
+            │   ├── IndividualDetail.tsx  ← Screen 3: Individual Contributor Radar
+            │   ├── PortfolioDashboard.tsx← Screen 4: Multi-Team Portfolio Tracker
+            │   ├── ARTSyncDashboard.tsx  ← Screen 5: Agile Release Train Sync
+            │   ├── HowItWorks.tsx        ← Screen 6: Calculation Methodology
+            │   └── Settings.tsx          ← Screen 7: Governance & Configuration
             └── utils/
-                ├── bridge.ts             ← Safe Forge invoke & mock fallback bridge
+                ├── bridge.ts             ← Safe Forge invoke bridge
                 └── jiraUrl.tsx           ← Jira deep-linking utilities
 ```
 
 - **Framework:** Atlassian Forge with Custom UI
-- **Backend Runtime:** TypeScript (Strict Mode) on Atlassian Forge FaaS
-- **Frontend Stack:** React 18, TypeScript, Vite, `@atlaskit` UI component library, Recharts
-- **API Standards:** Fully compliant with Atlassian REST API CHANGE-2046 pagination & JQL standards
+- **Backend Runtime:** Node.js (`nodejs22.x`) TypeScript on Atlassian Forge FaaS
+- **Frontend Stack:** React 18, TypeScript, Vite, `@atlaskit` design system, Recharts
+- **API Standards:** Compliant with Atlassian REST API CHANGE-2046 pagination & JQL standards
 - **Security:** Forge User Impersonation (`api.asUser()`), granular OAuth scopes, zero third-party telemetry
 
 ---
@@ -154,7 +189,7 @@ ici-dashboard/
 ## 🚀 Setup, Testing & Deployment
 
 ### 1. Prerequisites
-- Node.js (v18 or v20 LTS recommended)
+- Node.js (v18, v20, or v22 LTS)
 - Atlassian Forge CLI:
   ```bash
   npm install -g @forge/cli
@@ -197,14 +232,14 @@ To test live against a connected Jira site:
 forge tunnel
 ```
 
-### 7. Deploy to Production
-Deploy the application to the production environment:
+### 7. Deploy to Jira Cloud
+Deploy the application to the development or production environment:
 ```bash
 # Deploy code bundle to production environment
 forge deploy -e production
 
-# Upgrade or install on Jira production site (if prompted)
-forge install --upgrade -e production --site interswitch.atlassian.net --product jira
+# Upgrade or install on Jira site
+forge install --upgrade -e production --site your-site.atlassian.net --product jira
 ```
 
 ---
@@ -217,4 +252,4 @@ forge install --upgrade -e production --site interswitch.atlassian.net --product
 ---
 
 ## 📄 License
-Internal Enterprise License. Built for Interswitch Engineering Management and SAFe Agile Release Trains.
+Internal Enterprise License. Built for Engineering Management and SAFe Agile Release Trains.
