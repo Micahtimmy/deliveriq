@@ -163,7 +163,7 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
   function handleCopyBriefing() {
     if (!data?.aiBriefing) return;
     const briefing = data.aiBriefing;
-    const text = `**ICI Executive Briefing - ${new Date().toLocaleDateString()}**\n\n` +
+    const text = `**DeliverIQ Executive Briefing - ${new Date().toLocaleDateString()}**\n\n` +
       `**Overall Health:** ${briefing.overallHealth}\n\n` +
       `**Summary:**\n${briefing.summaryNarrative}\n\n` +
       `**Key Highlights:**\n${briefing.keyHighlights.map(h => `- ${h}`).join('\n')}\n\n` +

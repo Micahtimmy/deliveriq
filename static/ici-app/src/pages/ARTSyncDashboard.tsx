@@ -630,7 +630,10 @@ export const ARTSyncDashboard: React.FC = () => {
               </label>
               <select
                 value={selectedFY}
-                onChange={(e) => setSelectedFY(e.target.value)}
+                onChange={(e) => {
+                  setSelectedFY(e.target.value);
+                  setCurrentPage(1);
+                }}
                 style={{
                   width: '100%',
                   padding: '7px 10px',
@@ -655,7 +658,10 @@ export const ARTSyncDashboard: React.FC = () => {
               </label>
               <select
                 value={selectedQuarter}
-                onChange={(e) => setSelectedQuarter(e.target.value)}
+                onChange={(e) => {
+                  setSelectedQuarter(e.target.value);
+                  setCurrentPage(1);
+                }}
                 style={{
                   width: '100%',
                   padding: '7px 10px',
@@ -681,7 +687,10 @@ export const ARTSyncDashboard: React.FC = () => {
               </label>
               <select
                 value={selectedIteration}
-                onChange={(e) => setSelectedIteration(e.target.value)}
+                onChange={(e) => {
+                  setSelectedIteration(e.target.value);
+                  setCurrentPage(1);
+                }}
                 style={{
                   width: '100%',
                   padding: '7px 10px',
@@ -708,7 +717,10 @@ export const ARTSyncDashboard: React.FC = () => {
               </label>
               <select
                 value={selectedSprintState}
-                onChange={(e) => setSelectedSprintState(e.target.value)}
+                onChange={(e) => {
+                  setSelectedSprintState(e.target.value);
+                  setCurrentPage(1);
+                }}
                 style={{
                   width: '100%',
                   padding: '7px 10px',

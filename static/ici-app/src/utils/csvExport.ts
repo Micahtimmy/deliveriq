@@ -84,7 +84,7 @@ export function exportTeamScoresToCSV(
   ].join('\r\n');
 
   const cleanBoardName = boardName.replace(/[^a-zA-Z0-9_-]/g, '_');
-  const filename = `ICI_Team_Delivery_${cleanBoardName}_${new Date().toISOString().substring(0, 10)}.csv`;
+  const filename = `DeliverIQ_Team_Delivery_${cleanBoardName}_${new Date().toISOString().substring(0, 10)}.csv`;
   downloadBlob(csvContent, filename);
 }
 

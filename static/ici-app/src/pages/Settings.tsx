@@ -174,7 +174,7 @@ export const Settings: React.FC = () => {
   return (
     <div style={{ maxWidth: '820px', margin: '0 auto', padding: '16px 0', color: '#172B4D' }}>
       <h1 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px', color: '#172B4D' }}>
-        ICI Dashboard & Portfolio Settings
+        DeliverIQ Settings &amp; Configuration
       </h1>
       <p style={{ color: '#5E6C84', marginBottom: '24px', fontSize: '14px' }}>
         Configure scoring dimension weights, authorized due date approvers, field mappings, and saved portfolio groups.
