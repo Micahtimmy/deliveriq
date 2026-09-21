@@ -14,12 +14,14 @@ import {
   RiskItem,
   TeamPerformanceItem
 } from '../types/portfolio';
+import { JiraBoard, JiraSpace } from '../types/jira';
 import {
   processEpicSummary,
   calculatePortfolioOverall,
   calculateWorkAllocation,
   generateAIBriefing
 } from '../lib/portfolio';
+import { getBoards } from './boards';
 
 /**
  * Helper to fetch JQL results using POST /rest/api/3/search with fallback to /rest/api/2/search
@@ -102,8 +104,26 @@ export const PORTFOLIO_CACHE_TTL_MS = 10 * 60 * 1000;
  */
 async function getProjectKeysFromBoards(boardIds: number[]): Promise<string[]> {
   const keys = new Set<string>();
+  const positiveIds = boardIds.filter(id => id > 0);
+  const negativeIds = boardIds.filter(id => id < 0);
+
+  if (negativeIds.length > 0) {
+    try {
+      const bRes = await getBoards();
+      const allBoards = bRes.boards || [];
+      negativeIds.forEach(nId => {
+        const matching = allBoards.find(b => b.id === nId);
+        if (matching?.location?.projectKey) {
+          keys.add(matching.location.projectKey);
+        }
+      });
+    } catch (e) {
+      console.warn('Failed to resolve negative space board keys:', e);
+    }
+  }
+
   const results = await Promise.all(
-    boardIds.map(async (bId) => {
+    positiveIds.map(async (bId) => {
       try {
         const res = await api.asUser().requestJira(
           route`/rest/agile/1.0/board/${bId}`,
@@ -603,7 +623,6 @@ export async function getARTSyncData(payload?: {
   featureKey?: string;
   forceRefresh?: boolean;
 }): Promise<ARTSyncData> {
-  const teamName = payload?.teamName || 'Platform Engineering Team';
   const fiscalYear = payload?.fiscalYear || 'FY27';
   const quarter = payload?.quarter || 'Q2';
   const iteration = payload?.iteration || 'Iteration 4';
@@ -614,24 +633,18 @@ export async function getARTSyncData(payload?: {
   const selectedFeatureKey = payload?.featureKey || 'ALL';
   const forceRefresh = payload?.forceRefresh || false;
 
-  // Known standard demo / preset sample workstreams
-  const sampleTeamNames = [
-    'Platform Engineering Team',
-    'Workplace Productivity',
-    'Core Platform',
-    'Mobile Experience',
-    'Security & Infrastructure',
-  ];
+  // 1. Fetch live boards & spaces to dynamically discover all teams on the instance
+  let liveBoards: JiraBoard[] = [];
+  let liveSpaces: JiraSpace[] = [];
+  try {
+    const bRes = await getBoards();
+    liveBoards = bRes.boards || [];
+    liveSpaces = bRes.spaces || [];
+  } catch (e) {
+    console.warn('Failed to load boards/spaces for ART sync:', e);
+  }
 
-  const isLiveJiraBoardQuery = boardIds.length > 0 || (
-    Boolean(teamName) &&
-    teamName !== 'All' &&
-    teamName !== 'All Teams' &&
-    !sampleTeamNames.includes(teamName) &&
-    !teamName.startsWith('Preset: Sample')
-  );
-
-  // Fetch live portfolio data from Jira
+  // 2. Fetch live portfolio data from Jira
   const portfolioData = await getPortfolioData({ boardIds, labels, dateRange, forceRefresh });
   const allEpics = portfolioData.epics || [];
 
@@ -649,7 +662,7 @@ export async function getARTSyncData(payload?: {
         acceptanceCriteria: `Verify acceptance and delivery criteria for ${child.summary}. Validate integration, test suite execution, and rollout criteria.`,
         status: child.statusCategory === 'Done' ? 'Done' : child.statusCategory === 'In Progress' ? 'In-Progress' : 'To-Do',
         statusCategory: child.statusCategory,
-        teamName: child.teamOrProject || epic.projectName || epic.projectKey || teamName,
+        teamName: child.teamOrProject || epic.projectName || epic.projectKey || 'Engineering Team',
         storyPoints: sp,
         assigneeName: child.assigneeName || 'Assigned Engineer',
         fiscalYear,
@@ -1057,50 +1070,32 @@ export async function getARTSyncData(payload?: {
     }
   ];
 
-  const allTeams = Array.from(
+  // Dynamically extract all real Spaces, Projects, and Boards from Jira
+  const liveProjectNames = liveSpaces.map(s => s.name).filter(Boolean);
+  const liveBoardNames = liveBoards.map(b => b.location?.projectName || b.name).filter(Boolean);
+  const epicProjectNames = allEpics.map(e => e.projectName).filter((p): p is string => Boolean(p));
+  const rawTaskTeamNames = rawTasks.map(t => t.teamName).filter((t): t is string => Boolean(t));
+
+  const distinctTeams = Array.from(
     new Set([
-      'Platform Engineering Team',
-      'Workplace Productivity',
-      'Core Platform',
-      'Mobile Experience',
-      'Security & Infrastructure',
-      ...allEpics.map((e) => e.projectName).filter((p): p is string => Boolean(p)),
-      ...rawTasks.map((t) => t.teamName).filter((t): t is string => Boolean(t)),
+      ...liveProjectNames,
+      ...liveBoardNames,
+      ...epicProjectNames,
+      ...rawTaskTeamNames,
     ])
   ).sort();
 
-  // If a live Jira board/preset is queried and has NO issues, return explicit empty state (NO DEFAULTING)
-  if (isLiveJiraBoardQuery && rawTasks.length === 0) {
-    return {
-      teamName,
-      fiscalYear,
-      quarter,
-      iteration,
-      sprintState,
-      epicsCommitted: 0,
-      tasksCommitted: 0,
-      tasksCompleted: 0,
-      iterationPerformance: 0,
-      storyPointsCommitted: 0,
-      storyPointsCompleted: 0,
-      iterationObjective: `No active iteration objective configured for ${teamName} in ${iteration}.`,
-      tasks: [],
-      features: [],
-      selectedFeatureKey,
-      allTeams,
-      emptyReason: `No active Epics or child tasks found in Jira for "${teamName}" in ${iteration} (${quarter} ${fiscalYear}). Please verify that issues are assigned to active sprints and properly linked under parent Epics in this board's project.`,
-      burndownData: [],
-      iterationPerformanceHistory: [],
-      velocityTrend: [],
-      riskRegister: [],
-      teamPerformanceList: [],
-      isSampleData: false,
-    };
+  const allTeams = distinctTeams.length > 0 ? ['All Teams', ...distinctTeams] : ['All Teams'];
+
+  // Determine effective team name (default to 'All Teams' if not specified or unrecognized)
+  let effectiveTeamName = payload?.teamName || 'All Teams';
+  if (effectiveTeamName === 'Platform Engineering Team' && !distinctTeams.includes('Platform Engineering Team')) {
+    effectiveTeamName = 'All Teams';
   }
 
-  // Determine active task pool (live Jira tasks or sample benchmark pool for demo workstreams)
-  const isSampleData = !isLiveJiraBoardQuery || rawTasks.length === 0;
-  const poolToUse = isLiveJiraBoardQuery && rawTasks.length > 0 ? rawTasks : fallbackTaskPool;
+  // Determine active task pool (live Jira tasks or fallback pool if instance is empty)
+  const isSampleData = rawTasks.length === 0;
+  const poolToUse = rawTasks.length > 0 ? rawTasks : fallbackTaskPool;
 
   // Build feature list dynamically from active pool
   const featureMap = new Map<string, FeatureItem>();
@@ -1125,8 +1120,8 @@ export async function getARTSyncData(payload?: {
   if (selectedFeatureKey && selectedFeatureKey !== 'ALL') {
     finalTasks = finalTasks.filter(t => t.epicKey === selectedFeatureKey || t.epicSummary.includes(selectedFeatureKey));
   }
-  if (teamName && teamName !== 'All' && teamName !== 'All Teams') {
-    const tNorm = teamName.toLowerCase().replace(/team|board|preset:?/gi, '').trim();
+  if (effectiveTeamName && effectiveTeamName !== 'All' && effectiveTeamName !== 'All Teams') {
+    const tNorm = effectiveTeamName.toLowerCase().replace(/team|board|preset:?/gi, '').trim();
     finalTasks = finalTasks.filter(t => {
       const itemNorm = (t.teamName || '').toLowerCase().replace(/team|board/gi, '').trim();
       return itemNorm === tNorm || itemNorm.includes(tNorm) || tNorm.includes(itemNorm);
@@ -1157,8 +1152,8 @@ export async function getARTSyncData(payload?: {
   const iterationPerformance = tasksCommitted > 0 ? Math.round((tasksCompleted / tasksCommitted) * 100) : 0;
 
   // Dynamic iteration objective text based on team
-  let iterationObjective = 'Enforce Cilium network policies across transaction apps in lower environments, validate Cluster Mesh, and establish mobile application security scanning.';
-  const tCheck = teamName.toLowerCase();
+  let iterationObjective = `Strategic iteration delivery and sprint execution objectives for ${effectiveTeamName}.`;
+  const tCheck = effectiveTeamName.toLowerCase();
   if (tCheck.includes('workplace')) {
     iterationObjective = 'Deliver enterprise collaboration hardware integration, end-to-end testing, and civil works room alterations across all active workplace productivity workstreams.';
   } else if (tCheck.includes('core')) {
@@ -1172,7 +1167,7 @@ export async function getARTSyncData(payload?: {
   } else if (tCheck === 'all' || tCheck === 'all teams') {
     iterationObjective = 'Deliver cross-workstream strategic iteration objectives including platform observability, zero-trust infrastructure, payment reliability, and mobile biometric onboarding.';
   } else if (finalTasks.length === 0) {
-    iterationObjective = `No active iteration objective configured for ${teamName} in ${iteration}.`;
+    iterationObjective = `No active iteration objective configured for ${effectiveTeamName} in ${iteration}.`;
   }
 
   // Dynamic calculations for live Jira vs benchmark sample data
@@ -1182,7 +1177,9 @@ export async function getARTSyncData(payload?: {
   let riskRegister: RiskItem[] = [];
   let teamPerformanceList: TeamPerformanceItem[] = [];
 
-  if (isLiveJiraBoardQuery && rawTasks.length > 0) {
+  const isLiveJiraData = rawTasks.length > 0;
+
+  if (isLiveJiraData) {
     // 1. Live Team Performance from Jira child issues / epics
     const teamMap = new Map<string, { total: number; completed: number }>();
     rawTasks.forEach(t => {
@@ -1305,7 +1302,7 @@ export async function getARTSyncData(payload?: {
   }
 
   return {
-    teamName,
+    teamName: effectiveTeamName,
     fiscalYear,
     quarter,
     iteration,
@@ -1326,7 +1323,7 @@ export async function getARTSyncData(payload?: {
     velocityTrend,
     riskRegister,
     teamPerformanceList,
-    emptyReason: finalTasks.length === 0 ? `No tasks found matching your filter selection for "${teamName}" in ${iteration}.` : undefined,
+    emptyReason: finalTasks.length === 0 ? `No tasks found matching your filter selection for "${effectiveTeamName}" in ${iteration}.` : undefined,
     isSampleData,
   };
 }

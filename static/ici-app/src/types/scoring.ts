@@ -82,8 +82,11 @@ export interface DimensionWeights {
 export interface TeamScoreResult {
   boardId?: number;
   boardName: string;
+  boardType?: 'scrum' | 'kanban' | 'space' | string;
   sprintIds?: number[];
   sprintNames: string[];
+  dateRange?: { startDate: string; endDate: string };
+  evaluationPeriod?: string;
   computedAt: string;
   scores: PersonScore[];
   weights?: DimensionWeights;

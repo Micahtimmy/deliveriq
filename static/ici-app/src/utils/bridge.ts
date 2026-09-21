@@ -3,8 +3,13 @@ import { JiraBoard, JiraSprint } from '../types/jira';
 import { EpicSummary, TeamGroup } from '../types/portfolio';
 import { getCacheKey, getClientCache, setClientCache, invalidateClientCache } from './cache';
 
-// Detect if running in a standalone browser window (outside Forge iframe)
-const isStandalone = typeof window !== 'undefined' && (window.parent === window || !('__forge_bridge__' in window));
+// Detect if running strictly in a standalone local browser window (e.g. Vite dev server on localhost outside of an iframe)
+const isLocalStandaloneDev =
+  typeof window !== 'undefined' &&
+  window.parent === window &&
+  (window.location.hostname === 'localhost' ||
+   window.location.hostname === '127.0.0.1' ||
+   window.location.protocol === 'file:');
 
 const CACHEABLE_COMMANDS = new Set([
   'getBoards',
@@ -43,16 +48,17 @@ export async function safeInvoke<T = unknown>(
 
   let response: { success: boolean; data?: T; error?: string };
 
-  if (isStandalone) {
+  if (isLocalStandaloneDev) {
     response = mockInvoke(command, payload) as { success: boolean; data?: T; error?: string };
   } else {
     try {
       const { invoke: forgeInvoke } = await import('@forge/bridge');
       const result = await forgeInvoke<T>(command, payload);
       response = result as { success: boolean; data?: T; error?: string };
-    } catch (e) {
-      console.warn(`[Forge Bridge Error] Falling back to mock for '${command}':`, e);
-      response = mockInvoke(command, payload) as { success: boolean; data?: T; error?: string };
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error(`[DeliverIQ Bridge] Failed to invoke '${command}':`, e);
+      response = { success: false, error: errMsg };
     }
   }
 

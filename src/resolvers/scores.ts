@@ -18,10 +18,14 @@ export async function getTeamScores(
   issues: JiraIssue[],
   storyPointsField: string,
   authorizedApproverId: string,
-  weights?: DimensionWeights
+  weights?: DimensionWeights,
+  dateRange?: { startDate: string; endDate: string },
+  boardType?: 'scrum' | 'kanban' | 'space' | string,
+  evaluationPeriod?: string
 ): Promise<TeamScoreResult> {
   const weightsKey = weights ? `${weights.onTime}-${weights.delivered}-${weights.quality}-${weights.collaboration}` : 'default';
-  const cacheKey = `scores-${boardId}-${[...sprintIds].sort().join('-')}-${weightsKey}`;
+  const dateKey = dateRange ? `${dateRange.startDate}_${dateRange.endDate}` : 'all';
+  const cacheKey = `scores-${boardId}-${[...sprintIds].sort().join('-')}-${dateKey}-${weightsKey}`;
 
   // Check cache
   try {
@@ -118,11 +122,28 @@ export async function getTeamScores(
     .sort((a, b) => b.ici - a.ici)
     .map((person, i) => ({ ...person, rank: i + 1 }));
 
+  // Formulate clear evaluation period string
+  let resolvedEvaluationPeriod = evaluationPeriod;
+  if (!resolvedEvaluationPeriod) {
+    if (sprintNames && sprintNames.length > 0) {
+      resolvedEvaluationPeriod = sprintNames.length === 1
+        ? sprintNames[0]
+        : `${sprintNames[0]} – ${sprintNames[sprintNames.length - 1]}`;
+    } else if (dateRange?.startDate && dateRange?.endDate) {
+      resolvedEvaluationPeriod = `${dateRange.startDate} to ${dateRange.endDate}`;
+    } else {
+      resolvedEvaluationPeriod = 'Last 30 Days (Rolling)';
+    }
+  }
+
   const result: TeamScoreResult = {
     boardId,
     boardName,
+    boardType,
     sprintIds,
     sprintNames,
+    dateRange,
+    evaluationPeriod: resolvedEvaluationPeriod,
     computedAt: new Date().toISOString(),
     scores,
     weights,

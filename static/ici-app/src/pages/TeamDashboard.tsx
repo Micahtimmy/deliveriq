@@ -18,6 +18,7 @@ interface TeamDashboardProps {
   data: TeamScoreResult;
   onSelectPerson: (person: PersonScore) => void;
   onRefreshData: (updated: TeamScoreResult) => void;
+  onChangeBoard?: () => void;
   storyPointsField: string;
   authorizedApproverId: string;
 }
@@ -26,6 +27,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
   data,
   onSelectPerson,
   onRefreshData,
+  onChangeBoard,
   storyPointsField,
   authorizedApproverId,
 }) => {
@@ -79,13 +81,17 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
       await invoke('clearCache', {
         boardId: bId,
         sprintIds: sIds,
+        dateRange: data.dateRange,
       });
 
       const res = (await invoke('getTeamScores', {
         boardId: bId,
         boardName: data.boardName,
+        boardType: data.boardType,
         sprintIds: sIds,
         sprintNames: data.sprintNames,
+        dateRange: data.dateRange,
+        evaluationPeriod: data.evaluationPeriod,
         storyPointsField,
         authorizedApproverId,
         weights,
@@ -231,6 +237,10 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
     };
   });
 
+  const isKanban = data.boardType === 'kanban' || data.boardType === 'space' || (data.sprintNames.length === 0 && Boolean(data.dateRange));
+  const boardTypeBadge = data.boardType === 'space' ? 'Space / Project' : isKanban ? 'Kanban Board' : 'Scrum Board';
+  const periodText = data.evaluationPeriod || (isKanban && data.dateRange ? `${data.dateRange.startDate} to ${data.dateRange.endDate}` : data.sprintNames.join(', '));
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {error && <ErrorBanner message={error} />}
@@ -247,18 +257,42 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
           }}
         >
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#FFFFFF', letterSpacing: '-0.3px' }}>
-              {data.boardName}
-            </h1>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <h1 style={{ fontSize: '24px', fontWeight: 700, margin: 0, color: '#FFFFFF', letterSpacing: '-0.3px' }}>
+                {data.boardName}
+              </h1>
+              <span
+                style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  color: '#FFFFFF',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                }}
+              >
+                {boardTypeBadge}
+              </span>
+            </div>
             <p style={{ margin: '6px 0 0 0', color: 'rgba(255, 255, 255, 0.9)', fontSize: '14px', fontWeight: 400 }}>
-              Sprints: <strong>{data.sprintNames.join(', ')}</strong> &bull; {totalEngineers} team members ranked
+              Period: <strong>{periodText}</strong> &bull; {totalEngineers} team members ranked
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: 'rgba(255, 255, 255, 0.8)' }}>
               Computed: {new Date(data.computedAt).toLocaleTimeString()}
             </span>
+            {onChangeBoard && (
+              <button
+                className="btn-secondary-glass"
+                onClick={onChangeBoard}
+                title="Change active Jira board or timeline range"
+              >
+                Change Board / Period
+              </button>
+            )}
             <button
               className="btn-secondary-glass"
               onClick={() => exportTeamScoresToCSV(scores, data.boardName, weights)}

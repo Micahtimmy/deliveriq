@@ -21,8 +21,9 @@ export async function getSprints(boardId: number): Promise<JiraSprint[]> {
     const fetchedValues = data.values || [];
     sprints.push(...fetchedValues);
 
-    if (data.isLast || fetchedValues.length === 0 || sprints.length >= (data.total || 0)) break;
-    startAt += 50;
+    if (data.isLast === true || fetchedValues.length === 0 || fetchedValues.length < 50) break;
+    if (typeof data.total === 'number' && data.total > 0 && sprints.length >= data.total) break;
+    startAt += fetchedValues.length;
   }
 
   return sprints.sort((a, b) =>

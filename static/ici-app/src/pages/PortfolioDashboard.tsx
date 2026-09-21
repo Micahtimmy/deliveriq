@@ -303,20 +303,36 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {/* Presets Select */}
+            {/* Unified Team / Space & Preset Scope Selector (EM & RTE) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Filter Preset:</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: '#FFFFFF' }}>Team &amp; Scope:</span>
               <select
-                value={selectedGroup}
+                value={
+                  selectedGroup
+                    ? `preset:${selectedGroup}`
+                    : selectedBoardIds.length === 1
+                    ? `board:${selectedBoardIds[0]}`
+                    : selectedBoardIds.length > 1
+                    ? 'custom'
+                    : 'ALL'
+                }
                 onChange={(e) => {
-                  const gId = e.target.value;
-                  if (!gId) {
+                  const val = e.target.value;
+                  if (val === 'ALL') {
                     setSelectedGroup('');
                     setSelectedBoardIds([]);
                     loadPortfolioData([]);
-                  } else {
+                  } else if (val.startsWith('preset:')) {
+                    const gId = val.replace('preset:', '');
                     const group = teamGroups.find(g => g.id === gId);
                     if (group) handleSelectPreset(group);
+                  } else if (val.startsWith('board:')) {
+                    const bId = Number(val.replace('board:', ''));
+                    const board = boards.find(b => b.id === bId);
+                    setSelectedGroup('');
+                    setSelectedBoardIds([bId]);
+                    const keys = board?.location?.projectKey ? [board.location.projectKey] : [];
+                    loadPortfolioData([bId], keys);
                   }
                 }}
                 style={{
@@ -328,12 +344,38 @@ export const PortfolioDashboard: React.FC<PortfolioDashboardProps> = ({ initialT
                   color: '#172B4D',
                   background: '#FFFFFF',
                   cursor: 'pointer',
+                  maxWidth: '300px',
                 }}
               >
-                <option value="">All Teams &amp; Projects ({boards.length} Boards)</option>
-                {teamGroups.map(g => (
-                  <option key={g.id} value={g.id}>{g.name} ({g.boardIds.length} Teams)</option>
-                ))}
+                <option value="ALL">All Teams &amp; Spaces ({boards.length} Boards / Full Portfolio)</option>
+                
+                {teamGroups.length > 0 && (
+                  <optgroup label="Multi-Team Presets (RTE &amp; Director Views)">
+                    {teamGroups.map(g => (
+                      <option key={`preset:${g.id}`} value={`preset:${g.id}`}>
+                        Preset: {g.name} ({g.boardIds.length} Teams)
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+
+                <optgroup label="Individual Teams &amp; Spaces (EM Single-Team Deep-Dive)">
+                  {boards.map(b => {
+                    const typeLabel = b.id < 0 ? 'Space' : b.type === 'kanban' ? 'Kanban' : 'Scrum';
+                    const pKeyLabel = b.location?.projectKey ? `[${b.location.projectKey}] ` : '';
+                    return (
+                      <option key={`board:${b.id}`} value={`board:${b.id}`}>
+                        [{typeLabel}] {pKeyLabel}{b.name}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+
+                {selectedBoardIds.length > 1 && !selectedGroup && (
+                  <option value="custom" disabled>
+                    Custom Multi-Team Selection ({selectedBoardIds.length} Boards)
+                  </option>
+                )}
               </select>
             </div>
 

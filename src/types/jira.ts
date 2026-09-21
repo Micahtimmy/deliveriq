@@ -1,3 +1,13 @@
+export interface JiraSpace {
+  id: string;
+  key: string;
+  name: string;
+  projectTypeKey?: string;
+  avatarUrls?: Record<string, string>;
+  lead?: { displayName?: string; accountId?: string };
+  insight?: { totalIssueCount?: number; lastIssueUpdateTime?: string };
+}
+
 export interface JiraBoard {
   id: number;
   name: string;

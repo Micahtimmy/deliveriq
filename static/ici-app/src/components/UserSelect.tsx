@@ -33,14 +33,10 @@ export const UserSelect: React.FC<UserSelectProps> = ({
   // Search Jira users when user types
   useEffect(() => {
     const lastTerm = inputValue.split(/[,;]/).pop()?.trim() || '';
-    if (!lastTerm || lastTerm.length < 2) {
-      setOptions([]);
-      return;
-    }
 
     const timer = setTimeout(() => {
       searchUsers(lastTerm);
-    }, 300);
+    }, 250);
 
     return () => clearTimeout(timer);
   }, [inputValue]);
@@ -75,6 +71,12 @@ export const UserSelect: React.FC<UserSelectProps> = ({
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleFocus() {
+    const lastTerm = inputValue.split(/[,;]/).pop()?.trim() || '';
+    searchUsers(lastTerm);
+    setIsOpen(true);
   }
 
   function handleSelectOption(user: JiraUserOption) {
@@ -184,9 +186,7 @@ export const UserSelect: React.FC<UserSelectProps> = ({
           type="text"
           value={inputValue}
           onChange={handleInputChange}
-          onFocus={() => {
-            if (options.length > 0) setIsOpen(true);
-          }}
+          onFocus={handleFocus}
           placeholder={placeholder}
           style={{
             width: '100%',

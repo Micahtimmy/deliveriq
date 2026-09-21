@@ -97,17 +97,22 @@ resolver.define('getSprints', async ({ payload }) => {
 resolver.define('getTeamScores', async ({ payload }) => {
   try {
     const {
-      boardId, boardName, sprintIds, sprintNames,
-      storyPointsField, authorizedApproverId, weights
+      boardId, boardName, boardType, sprintIds, sprintNames,
+      storyPointsField, authorizedApproverId, weights,
+      dateRange, evaluationPeriod, projectKey
     } = payload as {
-      boardId: number; boardName: string; sprintIds: number[];
-      sprintNames: string[]; storyPointsField: string; authorizedApproverId: string;
+      boardId: number; boardName: string; boardType?: string; sprintIds?: number[];
+      sprintNames?: string[]; storyPointsField: string; authorizedApproverId: string;
       weights?: DimensionWeights;
+      dateRange?: { startDate: string; endDate: string };
+      evaluationPeriod?: string;
+      projectKey?: string;
     };
-    const issues = await getIssues(boardId, sprintIds, storyPointsField);
+    const issues = await getIssues(boardId, sprintIds || [], storyPointsField, dateRange, projectKey);
     const result = await getTeamScores(
-      boardId, boardName, sprintIds, sprintNames,
-      issues, storyPointsField, authorizedApproverId, weights
+      boardId, boardName, sprintIds || [], sprintNames || [],
+      issues, storyPointsField, authorizedApproverId, weights,
+      dateRange, boardType, evaluationPeriod
     );
     return { success: true, data: result };
   } catch (e) {
@@ -135,8 +140,13 @@ resolver.define('saveSettings', async ({ payload }) => {
 
 resolver.define('clearCache', async ({ payload }) => {
   try {
-    const { boardId, sprintIds } = payload as { boardId: number; sprintIds: number[] };
-    const cacheKey = `scores-${boardId}-${[...sprintIds].sort().join('-')}`;
+    const { boardId, sprintIds, dateRange } = payload as {
+      boardId: number;
+      sprintIds?: number[];
+      dateRange?: { startDate: string; endDate: string };
+    };
+    const dateKey = dateRange ? `${dateRange.startDate}_${dateRange.endDate}` : 'all';
+    const cacheKey = `scores-${boardId}-${[...(sprintIds || [])].sort().join('-')}-${dateKey}-default`;
     await storage.delete(cacheKey);
     return { success: true };
   } catch (e) {

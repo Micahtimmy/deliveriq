@@ -28,7 +28,6 @@ permissions:
     - read:jql:jira
     - storage:app
 app:
-  id: ari:cloud:ecosystem::app/3ee81d85-6416-4403-a67d-06608f72cadb
+  id: ari:cloud:ecosystem::app/c2c643ae-39aa-4ead-a611-a3fee1a011f5
   runtime:
     name: nodejs22.x
-

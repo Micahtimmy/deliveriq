@@ -4,8 +4,9 @@
   "main": "src/resolvers/index.ts",
   "license": "MIT",
   "scripts": {
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "test": "vitest run --pool=forks",
+    "typecheck": "tsc --noEmit",
+    "build": "npm run build --prefix static/ici-app"
   },
   "devDependencies": {
     "@types/node": "^18.15.0",

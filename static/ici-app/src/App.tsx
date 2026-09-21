@@ -66,6 +66,7 @@ export default function App() {
             data={dashboardData}
             onSelectPerson={handleSelectPerson}
             onRefreshData={updated => setDashboardData(updated)}
+            onChangeBoard={() => setCurrentPage('selector')}
             storyPointsField={storyPointsField}
             authorizedApproverId={authorizedApproverId}
           />

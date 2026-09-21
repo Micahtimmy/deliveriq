@@ -39,7 +39,7 @@ export const ARTSyncDashboard: React.FC = () => {
   const [isPresetManagerOpen, setIsPresetManagerOpen] = useState<boolean>(false);
 
   // Filters State
-  const [selectedTeam, setSelectedTeam] = useState<string>('Platform Engineering Team');
+  const [selectedTeam, setSelectedTeam] = useState<string>('All Teams');
   const [selectedFeature, setSelectedFeature] = useState<string>('ALL');
   const [selectedFY, setSelectedFY] = useState<string>('FY27');
   const [selectedQuarter, setSelectedQuarter] = useState<string>('Q2');
@@ -193,14 +193,16 @@ export const ARTSyncDashboard: React.FC = () => {
       if (t && t !== 'All' && t !== 'All Teams') set.add(t);
     });
 
-    // 3. Ensure core standard release train workstreams are always selectable
-    [
-      'Platform Engineering Team',
-      'Workplace Productivity',
-      'Core Platform',
-      'Mobile Experience',
-      'Security & Infrastructure',
-    ].forEach((t) => set.add(t));
+    // 3. Only if the Jira instance has zero discovered boards or teams, provide fallback benchmark streams
+    if (set.size === 0) {
+      [
+        'Platform Engineering Team',
+        'Workplace Productivity',
+        'Core Platform',
+        'Mobile Experience',
+        'Security & Infrastructure',
+      ].forEach((t) => set.add(t));
+    }
 
     return Array.from(set).sort();
   }, [availableBoards, data?.allTeams]);
