@@ -92,7 +92,7 @@ let mockSavedTeamGroups: TeamGroup[] = [
 ];
 
 let mockSettings = {
-  authorizedApproverId: 'Sarah Chen (Lead Engineer)',
+  authorizedApproverId: '',
   storyPointsField: 'customfield_10016',
   weights: {
     onTime: 35,
@@ -114,6 +114,17 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
             { id: 102, name: 'Mobile App Revamp Board', type: 'scrum', location: { projectKey: 'MOB', projectName: 'Mobile App' } },
             { id: 103, name: 'Platform API & Cloud Board', type: 'kanban', location: { projectKey: 'PLAT', projectName: 'Platform API & Security' } },
             { id: 105, name: 'Data Pipeline & AI Board', type: 'scrum', location: { projectKey: 'DATA', projectName: 'Data & Analytics' } },
+            { id: 106, name: 'Payment Gateway & Switch Board', type: 'scrum', location: { projectKey: 'SWITCH', projectName: 'Payment Switching' } },
+            { id: 107, name: 'Card Issuing & Processing Board', type: 'scrum', location: { projectKey: 'CARD', projectName: 'Card Operations' } },
+            { id: 108, name: 'Digital Banking Web Board', type: 'scrum', location: { projectKey: 'WEB', projectName: 'Digital Channels' } },
+            { id: 109, name: 'POS & Terminal Systems Board', type: 'kanban', location: { projectKey: 'POS', projectName: 'Merchant Services' } },
+            { id: 110, name: 'Identity & Access Security Board', type: 'scrum', location: { projectKey: 'SEC', projectName: 'Security' } },
+            { id: 111, name: 'DevOps & SRE Platform Board', type: 'kanban', location: { projectKey: 'SRE', projectName: 'Site Reliability' } },
+            { id: 112, name: 'Corporate & Merchant Portal Board', type: 'scrum', location: { projectKey: 'CORP', projectName: 'Corporate Solutions' } },
+            { id: -1, name: 'Core Platform (CORE)', type: 'project', location: { projectKey: 'CORE', projectName: 'Core Platform' } },
+            { id: -2, name: 'Payment Switching (SWITCH)', type: 'project', location: { projectKey: 'SWITCH', projectName: 'Payment Switching' } },
+            { id: -3, name: 'Card Operations (CARD)', type: 'project', location: { projectKey: 'CARD', projectName: 'Card Operations' } },
+            { id: -4, name: 'Merchant Services (POS)', type: 'project', location: { projectKey: 'POS', projectName: 'Merchant Services' } },
           ] as JiraBoard[],
           storyPointsField: 'customfield_10016',
         },
@@ -126,6 +137,7 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
           { id: 501, name: 'Sprint 43 — Core Platform', state: 'closed', startDate: '2026-07-01', endDate: '2026-07-14' },
           { id: 502, name: 'Sprint 42 — API Refactor', state: 'closed', startDate: '2026-06-15', endDate: '2026-06-30' },
           { id: 503, name: 'Sprint 41 — Microservices Migration', state: 'closed', startDate: '2026-06-01', endDate: '2026-06-14' },
+          { id: 504, name: 'Sprint 40 — Performance & Scale', state: 'closed', startDate: '2026-05-15', endDate: '2026-05-31' },
         ] as JiraSprint[],
       };
 
@@ -591,15 +603,33 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
     }
 
     case 'searchJiraUsers': {
-      const q = ((payload?.query as string) || '').toLowerCase();
+      const q = ((payload?.query as string) || '').toLowerCase().trim();
       const mockUsers = [
-        { accountId: '5b10ac8d82e05b22cc7d4ef5', displayName: 'Sarah Chen (Lead Engineer)', emailAddress: 'sarah.chen@company.com' },
-        { accountId: '5b10ac8d82e05b22cc7d4ef6', displayName: 'Alex Rivera (Backend Dev)', emailAddress: 'alex.rivera@company.com' },
-        { accountId: '5b10ac8d82e05b22cc7d4ef7', displayName: 'Marcus Vance (Fullstack)', emailAddress: 'marcus.vance@company.com' },
-        { accountId: '5b10ac8d82e05b22cc7d4ef8', displayName: 'Elena Rostova (Frontend Engineer)', emailAddress: 'elena.rostova@company.com' },
-        { accountId: '5b10ac8d82e05b22cc7d4ef9', displayName: 'Micah Apabiekun (Engineering Director / PM)', emailAddress: 'micah.apabiekun@company.com' },
+        { accountId: 'usr-1', displayName: 'Micah Apabiekun (Engineering Director)', emailAddress: 'micah.apabiekun@company.com' },
+        { accountId: 'usr-2', displayName: 'David Okonjo (Core Banking Lead)', emailAddress: 'david.okonjo@company.com' },
+        { accountId: 'usr-3', displayName: 'Amina Yusuf (Switching & Settlement Lead)', emailAddress: 'amina.yusuf@company.com' },
+        { accountId: 'usr-4', displayName: 'Chidi Eze (Card Operations Lead)', emailAddress: 'chidi.eze@company.com' },
+        { accountId: 'usr-5', displayName: 'Sarah Chen (Lead Architect)', emailAddress: 'sarah.chen@company.com' },
+        { accountId: 'usr-6', displayName: 'Alex Rivera (Backend Infrastructure Lead)', emailAddress: 'alex.rivera@company.com' },
+        { accountId: 'usr-7', displayName: 'Marcus Vance (POS & Merchant Solutions Lead)', emailAddress: 'marcus.vance@company.com' },
+        { accountId: 'usr-8', displayName: 'Elena Rostova (Frontend & Mobile Lead)', emailAddress: 'elena.rostova@company.com' },
+        { accountId: 'usr-9', displayName: 'Tunde Adeleke (Head of Engineering)', emailAddress: 'tunde.adeleke@company.com' },
+        { accountId: 'usr-10', displayName: 'Folake Balogun (Product Delivery Manager)', emailAddress: 'folake.balogun@company.com' },
+        { accountId: 'usr-11', displayName: 'Samuel Nnamdi (Security & Compliance Lead)', emailAddress: 'samuel.nnamdi@company.com' },
+        { accountId: 'usr-12', displayName: 'Grace Adebayo (QA & Automation Manager)', emailAddress: 'grace.adebayo@company.com' },
       ];
+      if (!q) {
+        return { success: true, data: mockUsers };
+      }
       const matched = mockUsers.filter(u => u.displayName.toLowerCase().includes(q) || u.emailAddress.toLowerCase().includes(q));
+      // If user typed a custom name not in mock, provide it as a dynamic option
+      if (matched.length === 0 && q.length > 1) {
+        matched.push({
+          accountId: `custom-${Date.now()}`,
+          displayName: (payload?.query as string) || q,
+          emailAddress: `${q.replace(/\s+/g, '.').toLowerCase()}@company.com`,
+        });
+      }
       return { success: true, data: matched };
     }
 

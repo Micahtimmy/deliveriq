@@ -1,123 +1,136 @@
 import api, { route } from '@forge/api';
 import { JiraBoard, JiraSpace, JiraFieldDefinition } from '../types/jira';
 
+// Resilient Jira API helper trying asUser() first, then asApp() if unauthorized or failed
+async function fetchJiraWithFallback(routeBuilder: () => any): Promise<any | null> {
+  try {
+    const userRes = await api.asUser().requestJira(routeBuilder(), { headers: { Accept: 'application/json' } });
+    if (userRes && userRes.ok) return userRes;
+  } catch (e) {
+    // Ignore and try asApp
+  }
+  try {
+    const appRes = await api.asApp().requestJira(routeBuilder(), { headers: { Accept: 'application/json' } });
+    if (appRes && appRes.ok) return appRes;
+  } catch (e) {
+    // Ignore
+  }
+  return null;
+}
+
 export async function getBoards(): Promise<{
   boards: JiraBoard[];
   spaces: JiraSpace[];
   storyPointsField: string;
 }> {
-  const maxResults = 50;
+  const maxResults = 100;
   const boards: JiraBoard[] = [];
   const spaces: JiraSpace[] = [];
+  const seenBoardIds = new Set<number>();
+  const seenProjectKeys = new Set<string>();
 
-  // Helper for resilient requests
-  async function fetchWithFallback(endpoint: string) {
-    try {
-      const userRes = await api.asUser().requestJira(route`${endpoint}` as any, { headers: { Accept: 'application/json' } });
-      if (userRes.ok) return userRes;
-    } catch (e) {
-      // Ignore and try app fallback
-    }
-    try {
-      const appRes = await api.asApp().requestJira(route`${endpoint}` as any, { headers: { Accept: 'application/json' } });
-      return appRes;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // 1. Concurrently fetch first page of boards, first page of projects/spaces, and custom fields
-  const [boardsResult, projectsResult, fieldsResult] = await Promise.allSettled([
-    api.asUser().requestJira(
-      route`/rest/agile/1.0/board?startAt=0&maxResults=${maxResults}`,
-      { headers: { Accept: 'application/json' } }
-    ).catch(() => api.asApp().requestJira(
-      route`/rest/agile/1.0/board?startAt=0&maxResults=${maxResults}`,
-      { headers: { Accept: 'application/json' } }
-    )),
-    api.asUser().requestJira(
-      route`/rest/api/3/project/search?startAt=0&maxResults=${maxResults}&expand=insight,lead`,
-      { headers: { Accept: 'application/json' } }
-    ).catch(() => api.asApp().requestJira(
-      route`/rest/api/3/project/search?startAt=0&maxResults=${maxResults}&expand=insight,lead`,
-      { headers: { Accept: 'application/json' } }
-    )),
-    api.asUser().requestJira(
-      route`/rest/api/3/field`,
-      { headers: { Accept: 'application/json' } }
-    ).catch(() => api.asApp().requestJira(
-      route`/rest/api/3/field`,
-      { headers: { Accept: 'application/json' } }
-    ))
+  // 1. Concurrently start fetching first page of boards, projects/spaces, and fields
+  const [boardsRes, projectsRes, fieldsRes] = await Promise.all([
+    fetchJiraWithFallback(() => route`/rest/agile/1.0/board?startAt=0&maxResults=${maxResults}`),
+    fetchJiraWithFallback(() => route`/rest/api/3/project/search?startAt=0&maxResults=${maxResults}&expand=insight,lead`),
+    fetchJiraWithFallback(() => route`/rest/api/3/field`)
   ]);
 
-  // Process Boards (Page 1)
-  if (boardsResult.status === 'fulfilled' && boardsResult.value && boardsResult.value.ok) {
+  // Process Boards (Page 1 + Full Pagination up to 1000 boards)
+  if (boardsRes && boardsRes.ok) {
     try {
-      const firstData = (await boardsResult.value.json()) as { values?: JiraBoard[]; isLast?: boolean; total?: number };
-      const fetchedBoards = firstData.values || [];
-      boards.push(...fetchedBoards);
-
-      // Paginate through remaining boards (up to 250 boards)
-      let isLastBoard = firstData.isLast === true || fetchedBoards.length < maxResults;
-      let boardStartAt = fetchedBoards.length;
-
-      while (!isLastBoard && boardStartAt < 250) {
-        try {
-          const res = await api.asUser().requestJira(
-            route`/rest/agile/1.0/board?startAt=${boardStartAt}&maxResults=${maxResults}`,
-            { headers: { Accept: 'application/json' } }
-          );
-          if (!res.ok) break;
-          const data = (await res.json()) as { values?: JiraBoard[]; isLast?: boolean; total?: number };
-          const newBoards = data.values || [];
-          boards.push(...newBoards);
-          if (data.isLast === true || newBoards.length === 0 || newBoards.length < maxResults) {
-            isLastBoard = true;
-          }
-          boardStartAt += newBoards.length;
-        } catch (e) {
-          console.warn('Error during boards pagination:', e);
-          break;
+      const firstData = (await boardsRes.json()) as { values?: JiraBoard[]; isLast?: boolean; total?: number };
+      const firstBoards = firstData.values || [];
+      for (const b of firstBoards) {
+        if (!seenBoardIds.has(b.id)) {
+          seenBoardIds.add(b.id);
+          boards.push(b);
         }
+      }
+
+      let isLast = firstData.isLast === true || firstBoards.length < maxResults;
+      let startAt = firstBoards.length;
+
+      while (!isLast && startAt < 1000) {
+        const nextRes = await fetchJiraWithFallback(
+          () => route`/rest/agile/1.0/board?startAt=${startAt}&maxResults=${maxResults}`
+        );
+        if (!nextRes || !nextRes.ok) break;
+
+        const nextData = (await nextRes.json()) as { values?: JiraBoard[]; isLast?: boolean; total?: number };
+        const newBoards = nextData.values || [];
+        for (const b of newBoards) {
+          if (!seenBoardIds.has(b.id)) {
+            seenBoardIds.add(b.id);
+            boards.push(b);
+          }
+        }
+
+        if (nextData.isLast === true || newBoards.length === 0 || newBoards.length < maxResults) {
+          isLast = true;
+        }
+        startAt += newBoards.length;
       }
     } catch (e) {
       console.warn('Error parsing boards data:', e);
     }
   }
 
-  // Process Spaces / Projects (Page 1)
-  if (projectsResult.status === 'fulfilled' && projectsResult.value && projectsResult.value.ok) {
+  // Process Projects / Spaces (Page 1 + Full Pagination up to 1000 projects)
+  if (projectsRes && projectsRes.ok) {
     try {
-      const firstProjData = (await projectsResult.value.json()) as { values?: JiraSpace[]; isLast?: boolean; total?: number };
-      const fetchedProjects = firstProjData.values || [];
-      spaces.push(...fetchedProjects);
-
-      // Paginate through remaining projects/spaces (up to 250 projects)
-      let isLastProj = firstProjData.isLast === true || fetchedProjects.length < maxResults;
-      let projStartAt = fetchedProjects.length;
-
-      while (!isLastProj && projStartAt < 250) {
-        try {
-          const res = await api.asUser().requestJira(
-            route`/rest/api/3/project/search?startAt=${projStartAt}&maxResults=${maxResults}&expand=insight,lead`,
-            { headers: { Accept: 'application/json' } }
-          );
-          if (!res.ok) break;
-          const data = (await res.json()) as { values?: JiraSpace[]; isLast?: boolean; total?: number };
-          const newProjs = data.values || [];
-          spaces.push(...newProjs);
-          if (data.isLast === true || newProjs.length === 0 || newProjs.length < maxResults) {
-            isLastProj = true;
-          }
-          projStartAt += newProjs.length;
-        } catch (e) {
-          console.warn('Error during projects/spaces pagination:', e);
-          break;
+      const firstProjData = (await projectsRes.json()) as { values?: JiraSpace[]; isLast?: boolean; total?: number };
+      const firstProjs = firstProjData.values || [];
+      for (const p of firstProjs) {
+        if (!seenProjectKeys.has(p.key.toUpperCase())) {
+          seenProjectKeys.add(p.key.toUpperCase());
+          spaces.push(p);
         }
+      }
+
+      let isLastProj = firstProjData.isLast === true || firstProjs.length < maxResults;
+      let projStartAt = firstProjs.length;
+
+      while (!isLastProj && projStartAt < 1000) {
+        const nextProjRes = await fetchJiraWithFallback(
+          () => route`/rest/api/3/project/search?startAt=${projStartAt}&maxResults=${maxResults}&expand=insight,lead`
+        );
+        if (!nextProjRes || !nextProjRes.ok) break;
+
+        const nextProjData = (await nextProjRes.json()) as { values?: JiraSpace[]; isLast?: boolean; total?: number };
+        const newProjs = nextProjData.values || [];
+        for (const p of newProjs) {
+          if (!seenProjectKeys.has(p.key.toUpperCase())) {
+            seenProjectKeys.add(p.key.toUpperCase());
+            spaces.push(p);
+          }
+        }
+
+        if (nextProjData.isLast === true || newProjs.length === 0 || newProjs.length < maxResults) {
+          isLastProj = true;
+        }
+        projStartAt += newProjs.length;
       }
     } catch (e) {
       console.warn('Error parsing projects data:', e);
+    }
+  }
+
+  // Fallback: If project/search returned nothing, try basic /rest/api/3/project
+  if (spaces.length === 0) {
+    try {
+      const basicProjRes = await fetchJiraWithFallback(() => route`/rest/api/3/project`);
+      if (basicProjRes && basicProjRes.ok) {
+        const basicProjs = (await basicProjRes.json()) as JiraSpace[];
+        for (const p of (basicProjs || [])) {
+          if (!seenProjectKeys.has(p.key.toUpperCase())) {
+            seenProjectKeys.add(p.key.toUpperCase());
+            spaces.push(p);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Error fetching fallback projects list:', e);
     }
   }
 
@@ -156,9 +169,9 @@ export async function getBoards(): Promise<{
 
   // Parse story points custom field definition
   let spFieldId = 'customfield_10016';
-  if (fieldsResult.status === 'fulfilled' && fieldsResult.value && fieldsResult.value.ok) {
+  if (fieldsRes && fieldsRes.ok) {
     try {
-      const fields = (await fieldsResult.value.json()) as JiraFieldDefinition[];
+      const fields = (await fieldsRes.json()) as JiraFieldDefinition[];
       const spField = fields.find(f =>
         f.name.toLowerCase().includes('story point') && f.custom
       );
@@ -172,7 +185,7 @@ export async function getBoards(): Promise<{
 
   return {
     boards: boards.sort((a, b) => {
-      // Sort Scrum & Kanban boards first, then Spaces
+      // Sort Scrum & Kanban boards first, then Spaces, alphabetically
       const aIsSpace = a.id < 0;
       const bIsSpace = b.id < 0;
       if (aIsSpace !== bIsSpace) return aIsSpace ? 1 : -1;
@@ -185,11 +198,8 @@ export async function getBoards(): Promise<{
 
 export async function getStoryPointsFields(): Promise<Array<{ id: string; name: string; isRecommended?: boolean }>> {
   try {
-    const res = await api.asUser().requestJira(
-      route`/rest/api/3/field`,
-      { headers: { Accept: 'application/json' } }
-    );
-    if (!res.ok) return [{ id: 'customfield_10016', name: 'Story Points (Default)', isRecommended: true }];
+    const res = await fetchJiraWithFallback(() => route`/rest/api/3/field`);
+    if (!res || !res.ok) return [{ id: 'customfield_10016', name: 'Story Points (Default)', isRecommended: true }];
     const fields = (await res.json()) as JiraFieldDefinition[];
     
     const candidateFields = fields
@@ -225,4 +235,3 @@ export async function getStoryPointsFields(): Promise<Array<{ id: string; name: 
     return [{ id: 'customfield_10016', name: 'Story Points (Default)', isRecommended: true }];
   }
 }
-

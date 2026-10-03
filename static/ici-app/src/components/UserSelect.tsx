@@ -18,7 +18,7 @@ interface UserSelectProps {
 export const UserSelect: React.FC<UserSelectProps> = ({
   value,
   onChange,
-  placeholder = 'Type approver name(s) (e.g. Sarah Chen, John Doe) or search Jira users...',
+  placeholder = 'Search Jira users by name/email or type manager/lead name(s)...',
 }) => {
   const [inputValue, setInputValue] = useState(value || '');
   const [options, setOptions] = useState<JiraUserOption[]>([]);

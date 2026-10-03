@@ -326,7 +326,7 @@ export const Settings: React.FC = () => {
           <UserSelect
             value={authorizedApproverId}
             onChange={(val) => setAuthorizedApproverId(val)}
-            placeholder="Type manager name(s) (e.g. Sarah Chen, John Doe) or search Jira users..."
+            placeholder="Search Jira users by name/email or type manager/lead name(s)..."
           />
           <p style={{ fontSize: '12px', color: '#6B778C', marginTop: '6px', lineHeight: '1.4' }}>
             Enter one or more manager/lead names or select them from Jira. Due date modifications made or approved by these individuals are marked as <strong>Authorized</strong>. Due date changes made by assignees without authorization are flagged as <strong>Unauthorized Due Date Drift</strong>.
