@@ -21,7 +21,8 @@ export async function getTeamScores(
   weights?: DimensionWeights,
   dateRange?: { startDate: string; endDate: string },
   boardType?: 'scrum' | 'kanban' | 'space' | string,
-  evaluationPeriod?: string
+  evaluationPeriod?: string,
+  activeWipIssues: JiraIssue[] = []
 ): Promise<TeamScoreResult> {
   const weightsKey = weights ? `${weights.onTime}-${weights.delivered}-${weights.quality}-${weights.collaboration}` : 'default';
   const dateKey = dateRange ? `${dateRange.startDate}_${dateRange.endDate}` : 'all';
@@ -35,9 +36,20 @@ export async function getTeamScores(
     }
   } catch {}
 
-  // Get unique assignees
+  // Get unique assignees from both resolved issues and active in-flight WIP
   const assigneeMap = new Map<string, { accountId: string; displayName: string; avatarUrl: string }>();
   issues.forEach(issue => {
+    const a = issue.fields.assignee;
+    if (a && !assigneeMap.has(a.accountId)) {
+      assigneeMap.set(a.accountId, {
+        accountId: a.accountId,
+        displayName: a.displayName,
+        avatarUrl: a.avatarUrls?.['48x48'] || '',
+      });
+    }
+  });
+
+  activeWipIssues.forEach(issue => {
     const a = issue.fields.assignee;
     if (a && !assigneeMap.has(a.accountId)) {
       assigneeMap.set(a.accountId, {
@@ -94,6 +106,25 @@ export async function getTeamScores(
         teamAvgCollab
       );
 
+      const todayStr = new Date().toISOString().substring(0, 10);
+      const engineerWip = activeWipIssues.filter(i => i.fields.assignee?.accountId === accountId);
+      const overdueWip = engineerWip.filter(i => Boolean(i.fields.duedate && i.fields.duedate < todayStr));
+
+      const activeWip = {
+        count: engineerWip.length,
+        overdueCount: overdueWip.length,
+        issues: engineerWip.map(w => ({
+          key: w.key,
+          summary: w.fields.summary || '',
+          dueDate: w.fields.duedate,
+          isOverdue: Boolean(w.fields.duedate && w.fields.duedate < todayStr),
+          status: w.fields.status?.name || 'In Progress',
+          storyPoints: typeof (w.fields as Record<string, unknown>)[storyPointsField] === 'number'
+            ? ((w.fields as Record<string, unknown>)[storyPointsField] as number)
+            : undefined,
+        })),
+      };
+
       return {
         accountId,
         displayName: person.displayName,
@@ -117,6 +148,7 @@ export async function getTeamScores(
         lateIssues: onTimeResult.lateKeys,
         reopenedIssues: qualityResult.reopenedKeys,
         regressedIssues: qualityResult.regressionKeys,
+        activeWip,
       } as PersonScore;
     })
     .sort((a, b) => b.ici - a.ici)
@@ -136,6 +168,10 @@ export async function getTeamScores(
     }
   }
 
+  const todayStr = new Date().toISOString().substring(0, 10);
+  const totalActiveWip = activeWipIssues.length;
+  const totalOverdueWip = activeWipIssues.filter(i => Boolean(i.fields.duedate && i.fields.duedate < todayStr)).length;
+
   const result: TeamScoreResult = {
     boardId,
     boardName,
@@ -147,6 +183,8 @@ export async function getTeamScores(
     computedAt: new Date().toISOString(),
     scores,
     weights,
+    totalActiveWip,
+    totalOverdueWip,
   };
 
   // Write to cache

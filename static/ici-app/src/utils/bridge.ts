@@ -177,6 +177,13 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
             lateIssues: ['ENG-410'],
             reopenedIssues: [],
             regressedIssues: [],
+            activeWip: {
+              count: 1,
+              overdueCount: 0,
+              issues: [
+                { key: 'CORE-441', summary: 'Kafka cluster throughput optimization', dueDate: '2026-10-25', isOverdue: false, status: 'In Progress', storyPoints: 5 },
+              ],
+            },
           },
           {
             accountId: 'usr-2',
@@ -212,6 +219,14 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
             lateIssues: ['ENG-399'],
             reopenedIssues: ['ENG-388'],
             regressedIssues: [{ key: 'ENG-388', count: 1 }],
+            activeWip: {
+              count: 2,
+              overdueCount: 0,
+              issues: [
+                { key: 'CORE-445', summary: 'Payment settlement idempotency keys', dueDate: '2026-10-18', isOverdue: false, status: 'In Progress', storyPoints: 3 },
+                { key: 'CORE-450', summary: 'Webhook signature validation middleware', dueDate: '2026-10-22', isOverdue: false, status: 'In Progress', storyPoints: 2 },
+              ],
+            },
           },
           {
             accountId: 'usr-3',
@@ -253,6 +268,13 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
             lateIssues: ['ENG-310', 'ENG-320'],
             reopenedIssues: ['ENG-315', 'ENG-320'],
             regressedIssues: [{ key: 'ENG-320', count: 3 }],
+            activeWip: {
+              count: 1,
+              overdueCount: 1,
+              issues: [
+                { key: 'CORE-428', summary: 'Merchant portal onboarding flow refactor', dueDate: '2026-10-05', isOverdue: true, status: 'In Progress', storyPoints: 8 },
+              ],
+            },
           },
           {
             accountId: 'usr-4',
@@ -294,8 +316,17 @@ function mockInvoke(command: string, payload?: Record<string, unknown>): { succe
             lateIssues: ['ENG-299', 'ENG-305', 'ENG-312'],
             reopenedIssues: ['ENG-305'],
             regressedIssues: [{ key: 'ENG-305', count: 2 }],
+            activeWip: {
+              count: 1,
+              overdueCount: 0,
+              issues: [
+                { key: 'CORE-452', summary: 'Multi-factor authentication SMS fallback UI', dueDate: '2026-10-20', isOverdue: false, status: 'In Progress', storyPoints: 3 },
+              ],
+            },
           },
         ],
+        totalActiveWip: 5,
+        totalOverdueWip: 1,
       };
 
       return { success: true, data: mockResult };

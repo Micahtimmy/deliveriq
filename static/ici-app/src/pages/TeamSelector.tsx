@@ -20,7 +20,113 @@ interface SelectOption {
   value: number;
 }
 
-type TimelinePreset = '14d' | '30d' | '60d' | '90d' | '180d' | 'custom';
+export type TimelinePreset =
+  | 'last-month'
+  | 'current-month'
+  | 'prev-month'
+  | 'quarter'
+  | '30d'
+  | 'custom';
+
+export interface GroundedCadence {
+  id: TimelinePreset;
+  label: string;
+  badge?: string;
+  startDate: string;
+  endDate: string;
+  periodName: string;
+}
+
+export function getGroundedCadences(): GroundedCadence[] {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth(); // 0 = Jan, 9 = Oct
+
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
+  // 1. Last Full Month (Closed)
+  const lastMonthDate = new Date(currentYear, currentMonth - 1, 1);
+  const lmYear = lastMonthDate.getFullYear();
+  const lmIdx = lastMonthDate.getMonth();
+  const lastMonthStart = formatDate(new Date(lmYear, lmIdx, 1));
+  const lastMonthEnd = formatDate(new Date(lmYear, lmIdx + 1, 0));
+  const lastMonthName = `${monthNames[lmIdx]} ${lmYear}`;
+
+  // 2. Current Month (MTD)
+  const curMonthStart = formatDate(new Date(currentYear, currentMonth, 1));
+  const curMonthEnd = formatDate(now);
+  const curMonthName = `${monthNames[currentMonth]} ${currentYear} (MTD)`;
+
+  // 3. Previous 2nd Month (Closed)
+  const prev2Date = new Date(currentYear, currentMonth - 2, 1);
+  const p2Year = prev2Date.getFullYear();
+  const p2Idx = prev2Date.getMonth();
+  const prev2Start = formatDate(new Date(p2Year, p2Idx, 1));
+  const prev2End = formatDate(new Date(p2Year, p2Idx + 1, 0));
+  const prev2Name = `${monthNames[p2Idx]} ${p2Year}`;
+
+  // 4. Current Quarter
+  const qNum = Math.floor(currentMonth / 3) + 1;
+  const qStartMonth = (qNum - 1) * 3;
+  const qStart = formatDate(new Date(currentYear, qStartMonth, 1));
+  const qEnd = formatDate(now);
+  const qName = `Q${qNum} ${currentYear} (QTD)`;
+
+  // 5. Rolling 30 Days
+  const d30Start = formatDate(new Date(Date.now() - 30 * 24 * 60 * 60 * 1000));
+  const d30End = formatDate(now);
+
+  return [
+    {
+      id: 'last-month',
+      label: `${lastMonthName} (Closed)`,
+      badge: 'Recommended',
+      startDate: lastMonthStart,
+      endDate: lastMonthEnd,
+      periodName: lastMonthName,
+    },
+    {
+      id: 'current-month',
+      label: curMonthName,
+      startDate: curMonthStart,
+      endDate: curMonthEnd,
+      periodName: curMonthName,
+    },
+    {
+      id: 'prev-month',
+      label: `${prev2Name} (Closed)`,
+      startDate: prev2Start,
+      endDate: prev2End,
+      periodName: prev2Name,
+    },
+    {
+      id: 'quarter',
+      label: qName,
+      startDate: qStart,
+      endDate: qEnd,
+      periodName: `Q${qNum} ${currentYear}`,
+    },
+    {
+      id: '30d',
+      label: 'Rolling 30 Days',
+      startDate: d30Start,
+      endDate: d30End,
+      periodName: 'Last 30 Days',
+    },
+    {
+      id: 'custom',
+      label: 'Custom Calendar Range',
+      startDate: '',
+      endDate: '',
+      periodName: 'Custom Period',
+    },
+  ];
+}
 
 export const TeamSelector: React.FC<TeamSelectorProps> = ({
   onScoresLoaded,
@@ -44,15 +150,12 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
   // Evaluation Mode: 'sprint' or 'timeline'
   const [evalMode, setEvalMode] = useState<'sprint' | 'timeline'>('sprint');
 
-  // Kanban / Timeline Date Range State
-  const [timelinePreset, setTimelinePreset] = useState<TimelinePreset>('30d');
-  const [startDate, setStartDate] = useState<string>(() => {
-    const d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    return d.toISOString().split('T')[0];
-  });
-  const [endDate, setEndDate] = useState<string>(() => {
-    return new Date().toISOString().split('T')[0];
-  });
+  // Kanban / Grounded Cadence Date Range State
+  const defaultCadence = useMemo(() => getGroundedCadences()[0], []);
+  const [timelinePreset, setTimelinePreset] = useState<TimelinePreset>(defaultCadence.id);
+  const [startDate, setStartDate] = useState<string>(defaultCadence.startDate);
+  const [endDate, setEndDate] = useState<string>(defaultCadence.endDate);
+  const [cadencePeriodName, setCadencePeriodName] = useState<string>(defaultCadence.periodName);
 
   const [authorizedApproverId, setAuthorizedApproverId] = useState<string>('');
   const [dismissedApproverWarning, setDismissedApproverWarning] = useState<boolean>(false);
@@ -124,24 +227,14 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
 
   function handlePresetChange(preset: TimelinePreset) {
     setTimelinePreset(preset);
-    const today = new Date().toISOString().split('T')[0];
-    setEndDate(today);
-
-    if (preset === '14d') {
-      const d = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      setStartDate(d);
-    } else if (preset === '30d') {
-      const d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      setStartDate(d);
-    } else if (preset === '60d') {
-      const d = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      setStartDate(d);
-    } else if (preset === '90d') {
-      const d = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      setStartDate(d);
-    } else if (preset === '180d') {
-      const d = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      setStartDate(d);
+    const cadences = getGroundedCadences();
+    const match = cadences.find(c => c.id === preset);
+    if (match && preset !== 'custom') {
+      setStartDate(match.startDate);
+      setEndDate(match.endDate);
+      setCadencePeriodName(match.periodName);
+    } else if (preset === 'custom') {
+      setCadencePeriodName('Custom Calendar Period');
     }
   }
 
@@ -250,7 +343,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
       } else {
         // Timeline & Calendar Date Range Mode (Kanban or Space or Custom Scrum Date Range)
         const dateRangeObj = { startDate, endDate };
-        const evalPeriod = `${startDate} to ${endDate}`;
+        const evalPeriod = cadencePeriodName || `${startDate} to ${endDate}`;
 
         const scoresRes = (await invoke('getTeamScores', {
           boardId: selectedBoardOpt.value,
@@ -475,37 +568,52 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                 </div>
               )}
 
-              {/* Quick Presets Bar */}
+              {/* Grounded Cadence Presets */}
               <div>
-                <label style={{ fontWeight: 600, display: 'block', marginBottom: '8px', color: '#172B4D', fontSize: '13px' }}>
-                  Quick Timeline Presets:
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontWeight: 600, color: '#172B4D', fontSize: '13px', margin: 0 }}>
+                    Evaluation Cadence:
+                  </label>
+                  <span style={{ fontSize: '11px', color: '#6B778C', fontWeight: 500 }}>
+                    Aligns with organization business & review cycles
+                  </span>
+                </div>
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {[
-                    { id: '14d', label: 'Last 14 Days' },
-                    { id: '30d', label: 'Last 30 Days' },
-                    { id: '60d', label: 'Last 60 Days' },
-                    { id: '90d', label: 'Last 90 Days' },
-                    { id: '180d', label: 'Last 180 Days' },
-                    { id: 'custom', label: 'Custom Range' },
-                  ].map(p => (
+                  {getGroundedCadences().map(c => (
                     <button
-                      key={p.id}
+                      key={c.id}
                       type="button"
-                      onClick={() => handlePresetChange(p.id as TimelinePreset)}
+                      onClick={() => handlePresetChange(c.id)}
                       style={{
                         padding: '6px 12px',
-                        borderRadius: '4px',
-                        border: '1px solid #DFE1E6',
+                        borderRadius: '6px',
+                        border: timelinePreset === c.id ? '1px solid #0052CC' : '1px solid #DFE1E6',
                         fontSize: '12px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: timelinePreset === p.id ? '#0052CC' : '#FAFBFC',
-                        color: timelinePreset === p.id ? '#FFFFFF' : '#172B4D',
+                        background: timelinePreset === c.id ? '#0052CC' : '#FAFBFC',
+                        color: timelinePreset === c.id ? '#FFFFFF' : '#172B4D',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
                         transition: 'all 0.15s ease',
                       }}
                     >
-                      {p.label}
+                      {c.label}
+                      {c.badge && (
+                        <span
+                          style={{
+                            fontSize: '10px',
+                            padding: '1px 5px',
+                            borderRadius: '3px',
+                            background: timelinePreset === c.id ? '#FFFFFF' : '#E3FCEF',
+                            color: timelinePreset === c.id ? '#0052CC' : '#006644',
+                            fontWeight: 700,
+                          }}
+                        >
+                          {c.badge}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -524,6 +632,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                     onChange={(e) => {
                       setStartDate(e.target.value);
                       setTimelinePreset('custom');
+                      setCadencePeriodName('Custom Calendar Period');
                     }}
                     style={{
                       width: '100%',
@@ -550,6 +659,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                     onChange={(e) => {
                       setEndDate(e.target.value);
                       setTimelinePreset('custom');
+                      setCadencePeriodName('Custom Calendar Period');
                     }}
                     style={{
                       width: '100%',
@@ -565,11 +675,16 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                 </div>
               </div>
 
-              {/* Date Window Summary */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '12px', color: '#5E6C84' }}>
-                  Evaluating issues resolved between <strong>{startDate}</strong> and <strong>{endDate}</strong>
-                </span>
+              {/* Date Window Summary & Dual-Cohort Notice */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#F4F5F7', padding: '10px 14px', borderRadius: '6px', border: '1px solid #DFE1E6' }}>
+                <div>
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#172B4D' }}>
+                    Active Evaluation Cadence: <span style={{ color: '#0052CC' }}>{cadencePeriodName || `${startDate} to ${endDate}`}</span>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#5E6C84', marginTop: '2px' }}>
+                    Cohort A: Deliverables resolved between <strong>{startDate}</strong> and <strong>{endDate}</strong> &bull; Cohort B: Live in-flight WIP & overdue tracking
+                  </div>
+                </div>
                 <Badge appearance="primary">{totalDaysSelected} Days Window</Badge>
               </div>
             </div>
@@ -593,7 +708,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
             >
               {fetchingScores
                 ? 'Analyzing Jira Issues & Changelogs...'
-                : `Calculate ICI Scores (${evalMode === 'sprint' ? 'Sprint Evaluation' : `${totalDaysSelected}-Day Timeline`})`}
+                : `Calculate ICI Scores (${evalMode === 'sprint' ? 'Sprint Evaluation' : `${cadencePeriodName || `${totalDaysSelected}-Day Timeline`}`})`}
             </button>
           </div>
         </div>

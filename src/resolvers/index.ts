@@ -1,7 +1,7 @@
 import Resolver from '@forge/resolver';
 import { getBoards, getStoryPointsFields } from './boards';
 import { getSprints } from './sprints';
-import { getIssues } from './issues';
+import { getIssues, getActiveWipIssues } from './issues';
 import { getTeamScores } from './scores';
 import { storage } from '@forge/api';
 import { DimensionWeights } from '../types/scoring';
@@ -108,11 +108,18 @@ resolver.define('getTeamScores', async ({ payload }) => {
       evaluationPeriod?: string;
       projectKey?: string;
     };
-    const issues = await getIssues(boardId, sprintIds || [], storyPointsField, dateRange, projectKey);
+    const hasSprints = Array.isArray(sprintIds) && sprintIds.some(id => id > 0);
+    const [issues, activeWipIssues] = await Promise.all([
+      getIssues(boardId, sprintIds || [], storyPointsField, dateRange, projectKey),
+      !hasSprints
+        ? getActiveWipIssues(boardId, projectKey, storyPointsField)
+        : Promise.resolve([]),
+    ]);
+
     const result = await getTeamScores(
       boardId, boardName, sprintIds || [], sprintNames || [],
       issues, storyPointsField, authorizedApproverId, weights,
-      dateRange, boardType, evaluationPeriod
+      dateRange, boardType, evaluationPeriod, activeWipIssues
     );
     return { success: true, data: result };
   } catch (e) {

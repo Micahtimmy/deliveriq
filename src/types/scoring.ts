@@ -43,6 +43,19 @@ export type PerformanceTier =
   | 'Below Target'
   | 'Needs Attention';
 
+export interface ActiveWipDetail {
+  count: number;
+  overdueCount: number;
+  issues: Array<{
+    key: string;
+    summary: string;
+    dueDate?: string;
+    isOverdue: boolean;
+    status: string;
+    storyPoints?: number;
+  }>;
+}
+
 export interface PersonScore {
   accountId: string;
   displayName: string;
@@ -70,6 +83,7 @@ export interface PersonScore {
   lateIssues: string[];
   reopenedIssues: string[];
   regressedIssues: Array<{ key: string; count: number }>;
+  activeWip?: ActiveWipDetail;
 }
 
 export interface DimensionWeights {
@@ -90,4 +104,6 @@ export interface TeamScoreResult {
   computedAt: string;
   scores: PersonScore[];
   weights?: DimensionWeights;
+  totalActiveWip?: number;
+  totalOverdueWip?: number;
 }

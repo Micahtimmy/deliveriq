@@ -26,6 +26,9 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
   if (person.signals.dateChanges.unauthorized.length > 0) {
     integrityLine = 'Non-compliant: Unauthorized due date changes on record';
     integrityColor = '#DE350B';
+  } else if (person.activeWip && person.activeWip.overdueCount > 0) {
+    integrityLine = `At Risk: ${person.activeWip.overdueCount} in-flight tasks past locked due date`;
+    integrityColor = '#DE350B';
   } else if (
     (person.categories.onTime === null || person.categories.onTime >= 85) &&
     person.signals.carryOver.rate < 20
@@ -177,6 +180,78 @@ export const IndividualDetail: React.FC<IndividualDetailProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Section: Active In-Flight Work (Cohort B) */}
+      {person.activeWip && person.activeWip.count > 0 && (
+        <div style={{ marginBottom: '32px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <div>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#172B4D', margin: 0 }}>
+                Active In-Flight Work (Cohort B)
+              </h2>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#5E6C84' }}>
+                Unresolved tasks currently in progress. Due dates are locked at start to verify delivery commitments.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '12px', color: '#172B4D', fontWeight: 600, background: '#EBECF0', padding: '4px 8px', borderRadius: '4px' }}>
+                {person.activeWip.count} in progress
+              </span>
+              {person.activeWip.overdueCount > 0 ? (
+                <span style={{ background: '#FFEBE6', color: '#DE350B', fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '4px' }}>
+                  {person.activeWip.overdueCount} Overdue
+                </span>
+              ) : (
+                <span style={{ background: '#E3FCEF', color: '#006644', fontSize: '12px', fontWeight: 700, padding: '4px 8px', borderRadius: '4px' }}>
+                  All Due Dates On Track
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {person.activeWip.issues.map(wip => (
+              <div
+                key={wip.key}
+                style={{
+                  background: wip.isOverdue ? '#FFF0ED' : '#FFFFFF',
+                  border: wip.isOverdue ? '1px solid #FFBDAD' : '1px solid #DFE1E6',
+                  borderRadius: '8px',
+                  padding: '14px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                  <JiraIssueLink issueKey={wip.key} style={{ fontWeight: 700, fontSize: '13px' }} />
+                  <span style={{ fontSize: '13px', color: '#172B4D', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {wip.summary}
+                  </span>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexShrink: 0 }}>
+                  {wip.storyPoints !== undefined && wip.storyPoints !== null && (
+                    <span style={{ fontSize: '12px', color: '#5E6C84', fontWeight: 500 }}>
+                      {wip.storyPoints} pts
+                    </span>
+                  )}
+                  <span style={{ fontSize: '12px', background: '#EBECF0', color: '#42526E', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>
+                    {wip.status}
+                  </span>
+                  <div style={{ textAlign: 'right', minWidth: '110px' }}>
+                    <div style={{ fontSize: '11px', color: '#6B778C' }}>Locked Due Date:</div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: wip.isOverdue ? '#DE350B' : '#006644' }}>
+                      {wip.dueDate || 'Unset'} {wip.isOverdue ? '(OVERDUE)' : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Section 3: Behavioral Signals */}
       <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#172B4D', marginBottom: '16px' }}>

@@ -198,3 +198,58 @@ export async function getIssues(
          i.fields.resolution?.name !== 'Duplicate'
   );
 }
+
+/**
+ * Fetches active in-progress work items (unresolved WIP) for Kanban boards or projects.
+ * Used for dual-cohort Kanban flow analysis: active WIP volume, aging, and overdue commitments.
+ */
+export async function getActiveWipIssues(
+  boardId: number,
+  projectKey?: string,
+  storyPointsField: string = 'customfield_10016'
+): Promise<JiraIssue[]> {
+  let targetProjectKey = projectKey;
+  if (!targetProjectKey && boardId > 0) {
+    try {
+      const bRes = await api.asUser().requestJira(
+        route`/rest/agile/1.0/board/${boardId}`,
+        { headers: { Accept: 'application/json' } }
+      );
+      if (bRes.ok) {
+        const bData = (await bRes.json()) as { location?: { projectKey?: string } };
+        targetProjectKey = bData.location?.projectKey;
+      }
+    } catch (e) {
+      console.warn(`Could not resolve location for board ${boardId}:`, e);
+    }
+  }
+
+  if (!targetProjectKey) return [];
+
+  const fieldsList = [
+    'summary', 'assignee', 'status', 'duedate', 'issuetype', 'project',
+    storyPointsField,
+  ];
+
+  const jql = `project = "${targetProjectKey}" AND resolution IS EMPTY AND statusCategory IN ("In Progress", "indeterminate") ORDER BY duedate ASC, created ASC`;
+
+  try {
+    const rawIssues = await fetchIssuesByJql(jql, fieldsList, 100);
+    const seenKeys = new Set<string>();
+    const normalized: JiraIssue[] = [];
+
+    rawIssues.forEach(issue => {
+      if (!seenKeys.has(issue.key) && issue.fields.assignee) {
+        (issue.fields as Record<string, unknown>)['story_points'] =
+          (issue.fields as Record<string, unknown>)[storyPointsField] as number ?? null;
+        normalized.push(issue);
+        seenKeys.add(issue.key);
+      }
+    });
+
+    return normalized;
+  } catch (e) {
+    console.warn(`Failed to fetch active WIP issues for project ${targetProjectKey}:`, e);
+    return [];
+  }
+}

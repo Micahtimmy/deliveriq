@@ -111,6 +111,10 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
     return <LoadingSpinner message="Refreshing live Jira metrics..." />;
   }
 
+  const isKanban = data.boardType === 'kanban' || data.boardType === 'space' || (data.sprintNames.length === 0 && Boolean(data.dateRange));
+  const boardTypeBadge = data.boardType === 'space' ? 'Space / Project' : isKanban ? 'Kanban Board' : 'Scrum Board';
+  const periodText = data.evaluationPeriod || (isKanban && data.dateRange ? `${data.dateRange.startDate} to ${data.dateRange.endDate}` : data.sprintNames.join(', '));
+
   const onTimeW = weights?.onTime ?? 35;
   const delivW = weights?.delivered ?? 25;
   const qualW = weights?.quality ?? 25;
@@ -119,13 +123,14 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
   const head = {
     cells: [
       { key: 'rank', content: 'Rank', isSortable: true, width: 6 },
-      { key: 'name', content: 'Engineer', isSortable: true, width: 22 },
-      { key: 'ici', content: 'ICI Score', isSortable: true, width: 10 },
-      { key: 'tier', content: 'Performance Tier', isSortable: true, width: 15 },
-      { key: 'onTime', content: `On-Time (${onTimeW}%)`, isSortable: true, width: 12 },
-      { key: 'delivered', content: `Delivered (${delivW}%)`, isSortable: true, width: 12 },
-      { key: 'quality', content: `Quality (${qualW}%)`, isSortable: true, width: 11 },
-      { key: 'collaboration', content: `Collab (${collabW}%)`, isSortable: true, width: 10 },
+      { key: 'name', content: 'Engineer', isSortable: true, width: isKanban ? 20 : 22 },
+      { key: 'ici', content: 'ICI Score', isSortable: true, width: 9 },
+      { key: 'tier', content: 'Performance Tier', isSortable: true, width: 14 },
+      { key: 'onTime', content: `On-Time (${onTimeW}%)`, isSortable: true, width: 11 },
+      { key: 'delivered', content: `Delivered (${delivW}%)`, isSortable: true, width: 11 },
+      { key: 'quality', content: `Quality (${qualW}%)`, isSortable: true, width: 10 },
+      { key: 'collaboration', content: `Collab (${collabW}%)`, isSortable: true, width: 9 },
+      ...(isKanban ? [{ key: 'activeWip', content: 'Active WIP', isSortable: true, width: 11 }] : []),
       { key: 'signals', content: 'Signals', isSortable: false, width: 8 },
     ],
   };
@@ -134,6 +139,7 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
     const hasCarryOverSignal = person.signals.carryOver.rate > 40;
     const hasRegressionSignal = person.signals.regression.totalRegressions >= 3;
     const hasDateSignal = person.signals.dateChanges.unauthorized.length > 0;
+    const hasOverdueWipSignal = Boolean(person.activeWip && person.activeWip.overdueCount > 0);
 
     const rankDisplay = `#${person.rank}`;
 
@@ -208,6 +214,20 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
             </div>
           ),
         },
+        ...(isKanban ? [{
+          key: 'activeWip',
+          content: (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span style={{ fontWeight: 600, color: '#172B4D' }}>{person.activeWip?.count ?? 0} active</span>
+                {(person.activeWip?.overdueCount ?? 0) > 0 && (
+                  <Badge appearance="removed">{person.activeWip?.overdueCount} overdue</Badge>
+                )}
+              </div>
+              <span style={{ fontSize: '11px', color: '#5E6C84' }}>Cohort B in-flight</span>
+            </div>
+          ),
+        }] : []),
         {
           key: 'signals',
           content: (
@@ -227,7 +247,12 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
                   <Badge appearance="important">Date Change</Badge>
                 </Tooltip>
               )}
-              {!hasCarryOverSignal && !hasRegressionSignal && !hasDateSignal && (
+              {hasOverdueWipSignal && (
+                <Tooltip content={`${person.activeWip?.overdueCount} in-flight active tasks have passed their locked due dates`}>
+                  <Badge appearance="removed">Overdue WIP</Badge>
+                </Tooltip>
+              )}
+              {!hasCarryOverSignal && !hasRegressionSignal && !hasDateSignal && !hasOverdueWipSignal && (
                 <span style={{ color: '#006644', fontWeight: 600, fontSize: '12px' }}>Clean</span>
               )}
             </div>
@@ -236,10 +261,6 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
       ],
     };
   });
-
-  const isKanban = data.boardType === 'kanban' || data.boardType === 'space' || (data.sprintNames.length === 0 && Boolean(data.dateRange));
-  const boardTypeBadge = data.boardType === 'space' ? 'Space / Project' : isKanban ? 'Kanban Board' : 'Scrum Board';
-  const periodText = data.evaluationPeriod || (isKanban && data.dateRange ? `${data.dateRange.startDate} to ${data.dateRange.endDate}` : data.sprintNames.join(', '));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -444,6 +465,53 @@ export const TeamDashboard: React.FC<TeamDashboardProps> = ({
           </div>
           <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>Reopens &amp; Review regressions</div>
         </div>
+
+        {isKanban && (
+          <div
+            className="metric-card"
+            style={{
+              cursor: 'pointer',
+              borderLeft: (data.totalOverdueWip || 0) > 0 ? '4px solid #DE350B' : '4px solid #0052CC',
+            }}
+            onClick={() => {
+              const issues: TraceableIssue[] = [];
+              scores.forEach(p => {
+                (p.activeWip?.issues || []).forEach(w => {
+                  issues.push({
+                    key: w.key,
+                    summary: `${w.summary} (Due: ${w.dueDate || 'None'})${w.isOverdue ? ' [OVERDUE]' : ''}`,
+                    projectName: data.boardName,
+                    status: w.status,
+                    statusCategory: 'In Progress',
+                    storyPoints: w.storyPoints,
+                    assigneeName: p.displayName,
+                    assigneeAvatarUrl: p.avatarUrl,
+                  });
+                });
+              });
+              setTraceModalData({
+                title: 'Active In-Flight WIP Traceability (Cohort B)',
+                subtitle: `${data.totalActiveWip || 0} active WIP tasks across the team (${data.totalOverdueWip || 0} overdue)`,
+                issues,
+              });
+            }}
+          >
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#5E6C84', textTransform: 'uppercase', letterSpacing: '0.6px', display: 'flex', justifyContent: 'space-between' }}>
+              <span>Active In-Flight WIP</span>
+              {(data.totalOverdueWip || 0) > 0 && (
+                <span style={{ color: '#DE350B', fontWeight: 700 }}>
+                  {data.totalOverdueWip} Overdue
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: '32px', fontWeight: 800, color: (data.totalOverdueWip || 0) > 0 ? '#DE350B' : '#0052CC', margin: '6px 0 2px', letterSpacing: '-0.5px' }}>
+              {data.totalActiveWip ?? 0}
+            </div>
+            <div style={{ fontSize: '13px', color: '#42526E', fontWeight: 500 }}>
+              Live in-progress flow &bull; {(data.totalOverdueWip || 0) > 0 ? `${data.totalOverdueWip} overdue commitments` : 'All due dates on track'}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tier Distribution Bar */}
