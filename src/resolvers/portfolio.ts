@@ -284,7 +284,7 @@ async function computeTeamIterations(
     });
 
     if (projectGroups.size === 0 && allChildIssues.length > 0) {
-      projectGroups.set('Core Engineering Team', allChildIssues);
+      projectGroups.set('Workstream', allChildIssues);
     }
 
     let bCounter = 1;
@@ -301,7 +301,8 @@ async function computeTeamIterations(
         const statusName = child.fields.status?.name || '';
         const categoryKey = child.fields.status?.statusCategory?.key || '';
         const fieldsRecord = child.fields as unknown as Record<string, unknown>;
-        const pts = Number(fieldsRecord[storyPointsField] || 0) || 2;
+        const rawPts = Number(fieldsRecord[storyPointsField] || 0);
+        const pts = isNaN(rawPts) ? 0 : rawPts;
 
         totalStoryPoints += pts;
 
@@ -476,7 +477,7 @@ export async function getPortfolioData(payload: {
   const childJql = `parent IN (${epicKeys}) OR "Epic Link" IN (${epicKeys})`;
   const childFieldsList = [
     'summary', 'status', 'issuetype', 'labels', 'components',
-    'assignee', 'parent', 'issuelinks', storyPointsField
+    'assignee', 'parent', 'issuelinks', 'epic', 'customfield_10014', storyPointsField
   ];
 
   let allChildIssues: Array<{
@@ -495,6 +496,7 @@ export async function getPortfolioData(payload: {
         inwardIssue?: { key: string; fields?: { summary: string; status?: { name: string } } };
         outwardIssue?: { key: string; fields?: { summary: string; status?: { name: string } } };
       }>;
+      [key: string]: unknown;
     };
   }> = [];
 
@@ -520,7 +522,12 @@ export async function getPortfolioData(payload: {
   const dependencies: DependencyBlocker[] = [];
 
   allChildIssues.forEach(child => {
-    const parentKey = child.fields.parent?.key || '';
+    const fieldsRec = child.fields as Record<string, unknown>;
+    const parentKey =
+      child.fields.parent?.key ||
+      (typeof fieldsRec['customfield_10014'] === 'string' ? (fieldsRec['customfield_10014'] as string) : '') ||
+      ((fieldsRec['epic'] as { key?: string } | undefined)?.key || '') ||
+      '';
     if (parentKey) {
       if (!childMap.has(parentKey)) childMap.set(parentKey, []);
       childMap.get(parentKey)!.push(child);
@@ -658,7 +665,7 @@ export async function getARTSyncData(payload?: {
   allEpics.forEach(epic => {
     const children = epic.childIssues || [];
     children.forEach(child => {
-      const sp = child.storyPoints || 2;
+      const sp = typeof child.storyPoints === 'number' ? child.storyPoints : 0;
       rawTasks.push({
         epicKey: epic.key,
         epicSummary: epic.summary,
@@ -667,9 +674,9 @@ export async function getARTSyncData(payload?: {
         acceptanceCriteria: `Verify delivery and acceptance criteria for ${child.summary}.`,
         status: child.statusCategory === 'Done' ? 'Done' : child.statusCategory === 'In Progress' ? 'In-Progress' : 'To-Do',
         statusCategory: child.statusCategory,
-        teamName: child.teamOrProject || epic.projectName || epic.projectKey || 'Engineering Team',
+        teamName: child.teamOrProject || epic.projectName || epic.projectKey || 'Team',
         storyPoints: sp,
-        assigneeName: child.assigneeName || 'Assigned Engineer',
+        assigneeName: child.assigneeName || 'Unassigned',
         fiscalYear,
         quarter,
         iterationName: iteration,

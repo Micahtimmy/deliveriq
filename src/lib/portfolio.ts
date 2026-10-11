@@ -5,7 +5,8 @@ import {
   PortfolioDataResult,
   WorkAllocationBreakdown,
   DependencyBlocker,
-  AIExecutiveBriefing
+  AIExecutiveBriefing,
+  EpicChildIssueDetail
 } from '../types/portfolio';
 
 /**
@@ -34,7 +35,9 @@ export function processEpicSummary(
       issuetype?: { name: string };
       labels?: string[];
       components?: Array<{ name: string }>;
-      assignee?: { displayName: string };
+      assignee?: { displayName: string; avatarUrls?: Record<string, string> };
+      project?: { key: string; name: string };
+      [key: string]: unknown;
     };
   }>,
   storyPointsFieldKey: string = 'customfield_10016'
@@ -129,6 +132,30 @@ export function processEpicSummary(
   const epicCategoryKey = categoryName.toLowerCase().includes('done') ? 'Done' :
     categoryName.toLowerCase().includes('progress') ? 'In Progress' : 'To Do';
 
+  const mappedChildIssues: EpicChildIssueDetail[] = childIssues.map(child => {
+    const statusName = child.fields.status?.name || 'To Do';
+    const categoryName = child.fields.status?.statusCategory?.name || '';
+    const statusCat: 'To Do' | 'In Progress' | 'Done' =
+      categoryName.toLowerCase().includes('done') || statusName.toLowerCase().includes('done') || statusName.toLowerCase().includes('closed') ? 'Done' :
+      categoryName.toLowerCase().includes('progress') || statusName.toLowerCase().includes('progress') || statusName.toLowerCase().includes('review') ? 'In Progress' : 'To Do';
+
+    const fieldsRecord = child.fields as unknown as Record<string, unknown>;
+    const spVal = Number(fieldsRecord[storyPointsFieldKey] || child.fields.customfield_10016 || 0);
+    const storyPoints = isNaN(spVal) ? 0 : spVal;
+
+    return {
+      key: child.key,
+      summary: child.fields.summary || '',
+      status: statusName,
+      statusCategory: statusCat,
+      issueType: child.fields.issuetype?.name || 'Task',
+      storyPoints,
+      assigneeName: child.fields.assignee?.displayName,
+      assigneeAvatarUrl: child.fields.assignee?.avatarUrls?.['48x48'],
+      teamOrProject: child.fields.project?.name || epicIssue.fields.project?.name || 'Engineering',
+    };
+  });
+
   return {
     key: epicIssue.key,
     summary: epicIssue.fields.summary,
@@ -153,7 +180,8 @@ export function processEpicSummary(
     updatedAt: epicIssue.fields.updated || new Date().toISOString(),
     createdAt: epicIssue.fields.created || new Date().toISOString(),
     labels: epicIssue.fields.labels || [],
-    dueDate: epicIssue.fields.duedate
+    dueDate: epicIssue.fields.duedate,
+    childIssues: mappedChildIssues
   };
 }
 

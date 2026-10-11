@@ -160,7 +160,7 @@ export default function App() {
             ========================================= */}
         {appMode === 'ici' && (
           <>
-            {currentPage === 'selector' && (
+            {(currentPage === 'selector' || (currentPage === 'dashboard' && !dashboardData) || (currentPage === 'individual' && (!selectedPerson || !dashboardData))) && (
               <TeamSelector
                 onScoresLoaded={handleScoresLoaded}
                 onGoToSettings={() => setCurrentPage('settings')}

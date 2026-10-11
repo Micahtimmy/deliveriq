@@ -153,29 +153,6 @@ export const ARTSyncDashboard: React.FC = () => {
     }
   }
 
-  function getObjectiveForTeam(teamName: string, iteration: string): string {
-    const t = (teamName || '').toLowerCase();
-    if (t.includes('platform')) {
-      return 'Enforce Cilium network policies across transaction apps in lower environments, validate Cluster Mesh, and establish mobile application security scanning.';
-    }
-    if (t.includes('workplace')) {
-      return 'Deliver enterprise collaboration hardware integration, end-to-end testing, and civil works room alterations across all active workplace productivity workstreams.';
-    }
-    if (t.includes('core')) {
-      return 'Deliver payment routing failover switch, ISO 20022 messaging schema, and real-time Kafka settlement ledger.';
-    }
-    if (t.includes('mobile')) {
-      return 'Roll out NFC passport scanning, ISO 30107-3 compliant 3D facial liveness verification on iOS and Android.';
-    }
-    if (t.includes('security')) {
-      return 'Deploy SASE Zero-Trust Gateway connectors across multi-cloud VPCs and pilot corporate device DLP.';
-    }
-    if (t.includes('digital') || t.includes('bank')) {
-      return 'Complete core digital banking transaction switch migration and real-time fraud monitoring integration.';
-    }
-    return `Deliver cross-workstream strategic ${iteration} objectives including platform observability, zero-trust infrastructure, payment reliability, and mobile biometric onboarding.`;
-  }
-
   const allAvailableTasks: ARTSyncTask[] = data?.tasks || [];
 
   // Build Jira Teams & Agile Boards list cleanly
@@ -359,46 +336,31 @@ export const ARTSyncDashboard: React.FC = () => {
     setTraceModalData({ title, subtitle, issues: traceable });
   };
 
-  // Benchmark charts fallback data matching reference image
-  const burndownData: BurndownPoint[] = data?.burndownData || (hasNoData ? [] : [
-    { date: 'Aug 18', remaining: 58, ideal: 58 },
-    { date: 'Aug 20', remaining: 58, ideal: 48 },
-    { date: 'Aug 22', remaining: 52, ideal: 40 },
-    { date: 'Aug 24', remaining: 45, ideal: 30 },
-    { date: 'Aug 26', remaining: 46, ideal: 20 },
-    { date: 'Aug 28', remaining: 18, ideal: 10 },
-    { date: 'Aug 30', remaining: 0, ideal: 0 },
-  ]);
+  // Dynamic charts & performance data strictly derived from Jira
+  const burndownData: BurndownPoint[] = data?.burndownData && data.burndownData.length > 0
+    ? data.burndownData
+    : (spCommittedCount > 0
+        ? [
+            { date: 'Committed', remaining: spCommittedCount, ideal: spCommittedCount },
+            { date: 'Current', remaining: Math.max(0, spCommittedCount - spCompletedCount), ideal: 0 }
+          ]
+        : []);
 
-  const iterationPerformanceHistory: IterationPerformancePoint[] = data?.iterationPerformanceHistory || (hasNoData ? [] : [
-    { iteration: 'Iteration 1', performance: 87 },
-    { iteration: 'Iteration 2', performance: 89 },
-    { iteration: 'Iteration 3', performance: 100 },
-    { iteration: 'Iteration 4', performance: 100 },
-  ]);
+  const iterationPerformanceHistory: IterationPerformancePoint[] = data?.iterationPerformanceHistory && data.iterationPerformanceHistory.length > 0
+    ? data.iterationPerformanceHistory
+    : (tasksCommittedCount > 0
+        ? [{ iteration: selectedIteration || 'Active Sprint', performance: iterationPerformancePct }]
+        : []);
 
-  const velocityTrend: VelocityTrendPoint[] = data?.velocityTrend || (hasNoData ? [] : [
-    { iteration: 'Iteration 1', committed: 112, completed: 86 },
-    { iteration: 'Iteration 2', committed: 75, completed: 67 },
-    { iteration: 'Iteration 3', committed: 122, completed: 122 },
-    { iteration: 'Iteration 4', committed: 58, completed: 58 },
-    { iteration: 'Iteration 5', committed: 28, completed: 0 },
-  ]);
+  const velocityTrend: VelocityTrendPoint[] = data?.velocityTrend && data.velocityTrend.length > 0
+    ? data.velocityTrend
+    : (spCommittedCount > 0
+        ? [{ iteration: selectedIteration || 'Active Sprint', committed: spCommittedCount, completed: spCompletedCount }]
+        : []);
 
   const riskRegister: RiskItem[] = data?.riskRegister || [];
 
-  const teamPerformanceList: TeamPerformanceItem[] = data?.teamPerformanceList || [
-    { code: 'DB', name: 'Digital Banking', performance: 100 },
-    { code: 'DWP', name: 'Digital Workplace', performance: 100 },
-    { code: 'EAM', name: 'Enterprise Architecture', performance: 100 },
-    { code: 'IEP', name: 'Identity & Enterprise', performance: 100 },
-    { code: 'ADP', name: 'App Delivery & Platform', performance: 94 },
-    { code: 'COR', name: 'Core Platform', performance: 89 },
-    { code: 'RPA', name: 'Robotic Process Automation', performance: 88 },
-    { code: 'SAAP', name: 'Security & Access', performance: 82 },
-    { code: 'IAAP', name: 'Infrastructure & Cloud', performance: 80 },
-    { code: 'DAAP', name: 'Data & Analytics', performance: 57 },
-  ];
+  const teamPerformanceList: TeamPerformanceItem[] = data?.teamPerformanceList || [];
 
   // Theme Variables
   const theme = isDarkMode
@@ -1004,9 +966,9 @@ export const ARTSyncDashboard: React.FC = () => {
 
           {isObjectiveExpanded && (
             <div style={{ padding: '12px 18px', color: '#FFFFFF', fontSize: '13px', lineHeight: '1.5', opacity: 0.95 }}>
-              {data?.iterationObjective || (hasNoData
-                ? `No active iteration objective configured for ${selectedTeam} in ${selectedIteration}.`
-                : getObjectiveForTeam(selectedTeam, selectedIteration))}
+              {data?.iterationObjective || (filteredTasks.length > 0
+                ? `Execute committed sprint tasks and deliverables for ${selectedTeam} in ${selectedIteration}.`
+                : `No active iteration objective configured for ${selectedTeam} in ${selectedIteration}.`)}
             </div>
           )}
         </div>
@@ -1371,40 +1333,46 @@ export const ARTSyncDashboard: React.FC = () => {
               ITERATION PERFORMANCE PER TEAM
             </h3>
           </div>
-          <div style={{ height: '230px', padding: '0 16px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={teamPerformanceList} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={theme.chartGrid} />
-                <XAxis dataKey="code" stroke={theme.textSecondary} fontSize={12} fontWeight={700} />
-                <YAxis domain={[0, 100]} unit="%" stroke={theme.textSecondary} fontSize={11} />
-                <Tooltip
-                  formatter={(val, name, item) => [`${val}% (${item.payload.name})`, 'Performance']}
-                  contentStyle={{
-                    background: theme.cardBg,
-                    borderColor: theme.cardBorder,
-                    borderRadius: '6px',
-                    color: theme.textPrimary,
-                  }}
-                />
-                <Bar
-                  dataKey="performance"
-                  fill="#002B66"
-                  radius={[4, 4, 0, 0]}
-                  name="Team Performance"
-                >
-                  <LabelList
-                    dataKey="performance"
-                    position="top"
-                    formatter={(val: unknown) => `${val}%`}
-                    fill={theme.textPrimary}
-                    fontSize={11}
-                    fontWeight={700}
-                    offset={6}
+          {teamPerformanceList.length === 0 ? (
+            <div style={{ height: '230px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.textSecondary, fontSize: '12px' }}>
+              No team performance metrics recorded for this iteration.
+            </div>
+          ) : (
+            <div style={{ height: '230px', padding: '0 16px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={teamPerformanceList} margin={{ top: 25, right: 20, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={theme.chartGrid} />
+                  <XAxis dataKey="code" stroke={theme.textSecondary} fontSize={12} fontWeight={700} />
+                  <YAxis domain={[0, 100]} unit="%" stroke={theme.textSecondary} fontSize={11} />
+                  <Tooltip
+                    formatter={(val, name, item) => [`${val}% (${item.payload.name})`, 'Performance']}
+                    contentStyle={{
+                      background: theme.cardBg,
+                      borderColor: theme.cardBorder,
+                      borderRadius: '6px',
+                      color: theme.textPrimary,
+                    }}
                   />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+                  <Bar
+                    dataKey="performance"
+                    fill="#002B66"
+                    radius={[4, 4, 0, 0]}
+                    name="Team Performance"
+                  >
+                    <LabelList
+                      dataKey="performance"
+                      position="top"
+                      formatter={(val: unknown) => `${val}%`}
+                      fill={theme.textPrimary}
+                      fontSize={11}
+                      fontWeight={700}
+                      offset={6}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 

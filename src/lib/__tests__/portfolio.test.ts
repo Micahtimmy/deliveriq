@@ -63,6 +63,7 @@ describe('Portfolio Processing Engine', () => {
     expect(summary.completedStoryPoints).toBe(5);
     expect(summary.spCompletionPercentage).toBe(31);
     expect(summary.riskLevel).toBe('ON_TRACK');
+    expect(summary.childIssues).toHaveLength(3);
   });
 
   it('calculates overall portfolio progress across multiple epics', () => {
