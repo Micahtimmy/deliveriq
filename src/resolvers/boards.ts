@@ -51,7 +51,7 @@ export async function getBoards(): Promise<{
       let isLast = firstData.isLast === true || firstBoards.length < maxResults;
       let startAt = firstBoards.length;
 
-      while (!isLast && startAt < 1000) {
+      while (!isLast && startAt < 5000) {
         const nextRes = await fetchJiraWithFallback(
           () => route`/rest/agile/1.0/board?startAt=${startAt}&maxResults=${maxResults}`
         );
@@ -76,7 +76,7 @@ export async function getBoards(): Promise<{
     }
   }
 
-  // Process Projects / Spaces (Page 1 + Full Pagination up to 1000 projects)
+  // Process Projects / Spaces (Page 1 + Full Pagination up to 5000 projects)
   if (projectsRes && projectsRes.ok) {
     try {
       const firstProjData = (await projectsRes.json()) as { values?: JiraSpace[]; isLast?: boolean; total?: number };
@@ -91,7 +91,7 @@ export async function getBoards(): Promise<{
       let isLastProj = firstProjData.isLast === true || firstProjs.length < maxResults;
       let projStartAt = firstProjs.length;
 
-      while (!isLastProj && projStartAt < 1000) {
+      while (!isLastProj && projStartAt < 5000) {
         const nextProjRes = await fetchJiraWithFallback(
           () => route`/rest/api/3/project/search?startAt=${projStartAt}&maxResults=${maxResults}&expand=insight,lead`
         );
@@ -134,25 +134,17 @@ export async function getBoards(): Promise<{
     }
   }
 
-  // Build a lookup map of known projects with board associations
-  const projectsWithBoards = new Set<string>();
-  boards.forEach(b => {
-    if (b.location?.projectKey) {
-      projectsWithBoards.add(b.location.projectKey.toUpperCase());
-    }
-  });
-
-  // For any Space / Project that doesn't have an explicit Agile Board returned,
-  // synthesize a space-level board entry so EVERY Space and Team on the instance is visible
+  // Synthesize a space-level entry for EVERY Project/Space so users can always evaluate by Space directly
   spaces.forEach(space => {
-    const pKeyUpper = space.key.toUpperCase();
-    if (!projectsWithBoards.has(pKeyUpper)) {
-      let numId = Number(space.id);
-      if (isNaN(numId) || numId <= 0) {
-        numId = Math.abs(space.key.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0)) % 1000000;
-      }
+    let numId = Number(space.id);
+    if (isNaN(numId) || numId <= 0) {
+      numId = Math.abs(space.key.split('').reduce((acc, char) => (acc << 5) - acc + char.charCodeAt(0), 0)) % 1000000;
+    }
+    const synthesizedId = -numId;
+    if (!seenBoardIds.has(synthesizedId)) {
+      seenBoardIds.add(synthesizedId);
       boards.push({
-        id: -numId,
+        id: synthesizedId,
         name: `${space.name} (${space.key})`,
         type: space.projectTypeKey || 'project',
         location: {
@@ -163,7 +155,6 @@ export async function getBoards(): Promise<{
           projectTypeKey: space.projectTypeKey
         }
       });
-      projectsWithBoards.add(pKeyUpper);
     }
   });
 

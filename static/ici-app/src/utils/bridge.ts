@@ -3,13 +3,9 @@ import { JiraBoard, JiraSprint } from '../types/jira';
 import { EpicSummary, TeamGroup } from '../types/portfolio';
 import { getCacheKey, getClientCache, setClientCache, invalidateClientCache } from './cache';
 
-// Detect if running strictly in a standalone local browser window (e.g. Vite dev server on localhost outside of an iframe)
-const isLocalStandaloneDev =
-  typeof window !== 'undefined' &&
-  window.parent === window &&
-  (window.location.hostname === 'localhost' ||
-   window.location.hostname === '127.0.0.1' ||
-   window.location.protocol === 'file:');
+// Detect if running inside an iframe (Forge Custom UI strictly runs inside an iframe host)
+const isInsideIframe = typeof window !== 'undefined' && window.parent !== window;
+const isLocalStandaloneDev = !isInsideIframe;
 
 const CACHEABLE_COMMANDS = new Set([
   'getBoards',

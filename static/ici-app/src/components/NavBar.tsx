@@ -1,27 +1,35 @@
 import React, { useEffect, useState } from 'react';
 
+export type AppMode = 'ici' | 'deliveriq';
+
 export type PageName =
   | 'selector'
   | 'dashboard'
-  | 'epic-tracker'
-  | 'iteration-progress'
-  | 'art-sync'
-  | 'delivery-insights'
-  | 'ai-briefings'
   | 'individual'
   | 'how-it-works'
-  | 'settings';
+  | 'settings'
+  | 'art-sync'
+  | 'iteration-progress'
+  | 'epic-tracker'
+  | 'delivery-insights'
+  | 'ai-briefings';
 
 interface NavBarProps {
+  appMode: AppMode;
+  onSelectApp: (mode: AppMode) => void;
   currentPage: PageName;
   onNavigate: (page: PageName) => void;
   hasDashboardData: boolean;
+  hasSelectedPerson: boolean;
 }
 
 export const NavBar: React.FC<NavBarProps> = ({
+  appMode,
+  onSelectApp,
   currentPage,
   onNavigate,
   hasDashboardData,
+  hasSelectedPerson,
 }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('ici-theme') as 'light' | 'dark') || 'light';
@@ -37,16 +45,24 @@ export const NavBar: React.FC<NavBarProps> = ({
     setTheme(prev => (prev === 'light' ? 'dark' : 'light'));
   }
 
-  const navItems: { id: PageName; label: string; condition?: boolean }[] = [
-    { id: 'selector', label: 'Select Team' },
-    { id: 'dashboard', label: 'Team Dashboard', condition: hasDashboardData },
-    { id: 'epic-tracker', label: 'Epic Tracker' },
-    { id: 'iteration-progress', label: 'Iteration Progress' },
+  // Pure ICI Navigation Items
+  const iciNavItems: { id: PageName; label: string; condition?: boolean }[] = [
+    { id: 'selector', label: 'Select Team & Sprints' },
+    { id: 'dashboard', label: 'Team Leaderboard', condition: hasDashboardData },
+    { id: 'individual', label: 'Individual Detail', condition: hasSelectedPerson },
+    { id: 'how-it-works', label: 'Methodology & Guide' },
+  ];
+
+  // Enterprise DeliverIQ Navigation Items
+  const deliveriqNavItems: { id: PageName; label: string; condition?: boolean }[] = [
     { id: 'art-sync', label: 'ART Sync' },
+    { id: 'iteration-progress', label: 'Iteration Progress' },
+    { id: 'epic-tracker', label: 'Epic Tracker' },
     { id: 'delivery-insights', label: 'Delivery Insights' },
     { id: 'ai-briefings', label: 'Executive Briefings' },
-    { id: 'how-it-works', label: 'User Guide & Methodology' },
   ];
+
+  const activeNavItems = appMode === 'ici' ? iciNavItems : deliveriqNavItems;
 
   return (
     <nav
@@ -57,38 +73,77 @@ export const NavBar: React.FC<NavBarProps> = ({
         padding: '10px 18px',
         marginBottom: '24px',
         background: 'var(--nav-bg)',
-        borderRadius: '6px',
+        borderRadius: '8px',
         border: '1px solid var(--border-color)',
         boxShadow: '0 1px 3px rgba(9, 30, 66, 0.08)',
         flexWrap: 'wrap',
-        gap: '12px',
+        gap: '14px',
         transition: 'background 0.2s ease, border-color 0.2s ease',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-        {/* Brand Logo Badge */}
+        {/* Enterprise App Workspace Switcher */}
         <div
-          onClick={() => onNavigate('selector')}
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            background: '#0747A6',
-            padding: '5px 12px',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            transition: 'background 0.15s ease',
+            background: 'var(--bg-subtle, #EBECF0)',
+            padding: '3px',
+            borderRadius: '6px',
+            border: '1px solid var(--border-color, #DFE1E6)',
+            gap: '2px',
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.2px' }}>
-            DeliverIQ
-          </span>
-          <span className="status-dot green" title="System Active & Connected" />
+          <button
+            onClick={() => onSelectApp('ici')}
+            title="Switch to ICI Contributor Index"
+            style={{
+              background: appMode === 'ici' ? '#0052CC' : 'transparent',
+              color: appMode === 'ici' ? '#FFFFFF' : 'var(--nav-text)',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: appMode === 'ici' ? 800 : 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>🎯 ICI Contributor Index</span>
+            {appMode === 'ici' && <span className="status-dot green" />}
+          </button>
+
+          <button
+            onClick={() => onSelectApp('deliveriq')}
+            title="Switch to DeliverIQ Portfolio & ART Sync"
+            style={{
+              background: appMode === 'deliveriq' ? '#0747A6' : 'transparent',
+              color: appMode === 'deliveriq' ? '#FFFFFF' : 'var(--nav-text)',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '6px 12px',
+              fontSize: '12px',
+              fontWeight: appMode === 'deliveriq' ? 800 : 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <span>🚀 DeliverIQ (ART & Portfolio)</span>
+            {appMode === 'deliveriq' && <span className="status-dot green" />}
+          </button>
         </div>
 
-        {/* Navigation Items */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexWrap: 'wrap' }}>
-          {navItems.map(item => {
+        <div style={{ height: '24px', width: '1px', background: 'var(--border-color)' }} />
+
+        {/* Dynamic Navigation Items for Active App */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+          {activeNavItems.map(item => {
             if (item.condition === false) return null;
             const isActive = currentPage === item.id;
             return (
@@ -116,8 +171,8 @@ export const NavBar: React.FC<NavBarProps> = ({
         </div>
       </div>
 
+      {/* Right Controls: Theme Toggle & Settings */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
           title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
@@ -150,9 +205,11 @@ export const NavBar: React.FC<NavBarProps> = ({
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
+            gap: '4px',
           }}
         >
-          Settings
+          <span>⚙️</span>
+          <span>Settings</span>
         </button>
       </div>
     </nav>

@@ -6,6 +6,7 @@ import Badge from '@atlaskit/badge';
 import SectionMessage from '@atlaskit/section-message';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorBanner } from '../components/ErrorBanner';
+import { SearchableBoardSelect } from '../components/SearchableBoardSelect';
 import { JiraBoard, JiraSprint } from '../types/jira';
 import { DimensionWeights, TeamScoreResult } from '../types/scoring';
 
@@ -353,7 +354,7 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
         )}
 
         <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Board Selector */}
+          {/* Searchable Board & Space Selector */}
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <label style={{ fontWeight: 600, color: '#172B4D', fontSize: '13px' }}>
@@ -365,12 +366,19 @@ export const TeamSelector: React.FC<TeamSelectorProps> = ({
                 </span>
               )}
             </div>
-            <Select
-              options={boardOptions}
-              value={selectedBoardOpt}
-              onChange={opt => handleBoardChange(opt as SelectOption | null)}
-              placeholder="Search and select any Agile Board or Space..."
-              isDisabled={loading}
+            <SearchableBoardSelect
+              boards={boards}
+              selectedBoardId={selectedBoardOpt ? selectedBoardOpt.value : null}
+              onChange={board => {
+                if (board) {
+                  const opt = { label: board.name, value: board.id };
+                  handleBoardChange(opt, boards);
+                } else {
+                  handleBoardChange(null, boards);
+                }
+              }}
+              disabled={loading}
+              placeholder="Search by board name, project key (e.g., ABP, CORE)..."
             />
           </div>
 

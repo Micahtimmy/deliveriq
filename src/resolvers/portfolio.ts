@@ -612,20 +612,23 @@ export async function deleteTeamGroup(groupId: string): Promise<{ success: boole
   }
 }
 export async function getARTSyncData(payload?: {
-  teamName?: string;
   fiscalYear?: string;
   quarter?: string;
   iteration?: string;
   sprintState?: string;
+  teamName?: string;
   boardIds?: number[];
   labels?: string[];
   dateRange?: string;
   featureKey?: string;
   forceRefresh?: boolean;
 }): Promise<ARTSyncData> {
-  const fiscalYear = payload?.fiscalYear || 'FY27';
-  const quarter = payload?.quarter || 'Q2';
-  const iteration = payload?.iteration || 'Iteration 4';
+  const now = new Date();
+  const currentFY = `FY${String(now.getFullYear()).slice(-2)}`;
+  const currentQuarter = `Q${Math.floor(now.getMonth() / 3) + 1}`;
+
+  const fiscalYear = payload?.fiscalYear || currentFY;
+  const quarter = payload?.quarter || currentQuarter;
   const sprintState = payload?.sprintState || 'All';
   const boardIds = payload?.boardIds || [];
   const labels = payload?.labels || [];
@@ -647,6 +650,8 @@ export async function getARTSyncData(payload?: {
   // 2. Fetch live portfolio data from Jira
   const portfolioData = await getPortfolioData({ boardIds, labels, dateRange, forceRefresh });
   const allEpics = portfolioData.epics || [];
+  const defaultIteration = portfolioData.teamIterations?.[0]?.sprintName || 'Active Iteration';
+  const iteration = payload?.iteration || defaultIteration;
 
   const rawTasks: ARTSyncTask[] = [];
 
@@ -659,7 +664,7 @@ export async function getARTSyncData(payload?: {
         epicSummary: epic.summary,
         taskKey: child.key,
         taskSummary: child.summary,
-        acceptanceCriteria: `Verify acceptance and delivery criteria for ${child.summary}. Validate integration, test suite execution, and rollout criteria.`,
+        acceptanceCriteria: `Verify delivery and acceptance criteria for ${child.summary}.`,
         status: child.statusCategory === 'Done' ? 'Done' : child.statusCategory === 'In Progress' ? 'In-Progress' : 'To-Do',
         statusCategory: child.statusCategory,
         teamName: child.teamOrProject || epic.projectName || epic.projectKey || 'Engineering Team',
@@ -672,403 +677,6 @@ export async function getARTSyncData(payload?: {
       });
     });
   });
-
-  // Built-in benchmark sample pool for designated demo workstreams
-  const fallbackTaskPool: ARTSyncTask[] = [
-    // Feature 1: Platform Engineering Team (Matching sample art sync board)
-    {
-      epicKey: 'Improve Security Observability & Respond Proactively to Security Incidents',
-      epicSummary: 'Improve Security Observability & Respond Proactively to Security Incidents',
-      taskKey: 'FINCH-201',
-      taskSummary: 'Rollout Service to Service Communications from Non-Transaction Apps to Finch Transaction Apps',
-      acceptanceCriteria: 'All Finch transaction applications should communicate with other Kubernetes applications via direct service to service calls',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 8,
-      assigneeName: 'Marcus Vance',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'Improve Security Observability & Respond Proactively to Security Incidents',
-      epicSummary: 'Improve Security Observability & Respond Proactively to Security Incidents',
-      taskKey: 'AWAF-102',
-      taskSummary: 'Setup Paydirect online VS AWAF policy for Blocking mode',
-      acceptanceCriteria: 'Have a final review of the policy\'s learning. Engage all relevant stakeholders before transitioning to blocking Enforcement mode',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 5,
-      assigneeName: 'Sarah Chen',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'Improve Security Observability & Respond Proactively to Security Incidents',
-      epicSummary: 'Improve Security Observability & Respond Proactively to Security Incidents',
-      taskKey: 'WEBPAY-301',
-      taskSummary: 'Transition WebPay VS AWAF policy to Blocking mode',
-      acceptanceCriteria: 'Have a final review of the policy\'s learning. Engage all relevant stakeholders before transitioning to blocking Enforcement mode',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 8,
-      assigneeName: 'Alex Rivera',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
-      epicSummary: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
-      taskKey: 'JIRA-401',
-      taskSummary: 'Conduct POC for Jira Deployment Tracking',
-      acceptanceCriteria: 'Integrate Jira Deployment Tracking into our pipelines as a pilot test and document its features and capabilities',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 13,
-      assigneeName: 'Elena Rostova',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
-      epicSummary: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
-      taskKey: 'MOB-502',
-      taskSummary: 'Conduct POC for mobile security scanning (App Knox)',
-      acceptanceCriteria: 'Integrate AppKnox Security Scanning into one mobile pipeline',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 8,
-      assigneeName: 'Sarah Chen',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
-      epicSummary: 'Improve Software Delivery Velocity, Quality & Governance Across Engineering Teams',
-      taskKey: 'ING-603',
-      taskSummary: 'Create Internet-Facing Ingress Domain for UAT (uat.isw.la)',
-      acceptanceCriteria: 'The ingress class for this domain would be our previous nginx-controller (nginx)',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 8,
-      assigneeName: 'David Kim',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
-      epicSummary: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
-      taskKey: 'CIL-701',
-      taskSummary: 'Enforce Cilium Network Policies across transaction microservices',
-      acceptanceCriteria: 'Validate L3/L4 & L7 network policies across transaction microservices in lower environments',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 5,
-      assigneeName: 'Marcus Vance',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
-      epicSummary: 'Cloud Native Infrastructure & Zero-Trust Mesh Deployment',
-      taskKey: 'CIL-702',
-      taskSummary: 'Validate Multi-Region Kubernetes Cluster Mesh peering',
-      acceptanceCriteria: 'Establish encrypted wireguard mesh tunnel across AWS & Azure primary clusters',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Platform Engineering Team',
-      storyPoints: 3,
-      assigneeName: 'David Kim',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-
-    // Feature 2: TELEPRESENCE (ISW ACADEMY) (Workplace Productivity)
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-101',
-      taskSummary: 'Mount Webex interactive screen',
-      acceptanceCriteria: 'Mount Webex interactive screen on conference wall',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Workplace Productivity',
-      storyPoints: 5,
-      assigneeName: 'Sarah Chen',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-102',
-      taskSummary: 'Capture feedback and resolve issues',
-      acceptanceCriteria: 'Capture feedback and resolve issues from pilot users',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Workplace Productivity',
-      storyPoints: 8,
-      assigneeName: 'Alex Rivera',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-103',
-      taskSummary: 'Conduct end-to-end testing (audio, video, touch interface)',
-      acceptanceCriteria: 'Conduct end-to-end testing (audio, video, touch interface)',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Workplace Productivity',
-      storyPoints: 13,
-      assigneeName: 'Marcus Vance',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-104',
-      taskSummary: 'Configure device settings',
-      acceptanceCriteria: 'Configure device settings and network policies',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Workplace Productivity',
-      storyPoints: 5,
-      assigneeName: 'Elena Rostova',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-105',
-      taskSummary: 'Integrate with corporate collaboration platform',
-      acceptanceCriteria: 'Integrate with corporate collaboration platform and single sign-on',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Workplace Productivity',
-      storyPoints: 8,
-      assigneeName: 'Sarah Chen',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-106',
-      taskSummary: 'Monitor and confirm completion of Civil works/alteration of meeting room',
-      acceptanceCriteria: 'Monitor and confirm completion of Civil works/alteration of meeting room',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Workplace Productivity',
-      storyPoints: 13,
-      assigneeName: 'Alex Rivera',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-107',
-      taskSummary: 'Perform physical setup and cable management',
-      acceptanceCriteria: 'Perform physical setup and cable management',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Workplace Productivity',
-      storyPoints: 8,
-      assigneeName: 'Marcus Vance',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'TELEPRESENCE (ISW ACADEMY)',
-      epicSummary: 'Collaboration Experience Transformation TELEPRESENCE (ISW ACADEMY)',
-      taskKey: 'WEBOX-108',
-      taskSummary: 'Plan for and set Timeframe for installation',
-      acceptanceCriteria: 'Plan for and set Timeframe for installation',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Workplace Productivity',
-      storyPoints: 13,
-      assigneeName: 'Elena Rostova',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 3',
-      sprintState: 'Active',
-    },
-
-    // Feature 3: SASE-SEC-200 (Security & Infrastructure)
-    {
-      epicKey: 'SASE-SEC-200',
-      epicSummary: 'Secure Access Service Edge (SASE) Zero-Trust Gateway Deployment',
-      taskKey: 'SASE-201',
-      taskSummary: 'Provision SASE Connector nodes in AWS & Azure',
-      acceptanceCriteria: 'Verify connector latency under 15ms with redundant tunnels across multi-region VPCs',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Security & Infrastructure',
-      storyPoints: 8,
-      assigneeName: 'David Kim',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'SASE-SEC-200',
-      epicSummary: 'Secure Access Service Edge (SASE) Zero-Trust Gateway Deployment',
-      taskKey: 'SASE-202',
-      taskSummary: 'Configure DLP & Threat Prevention Profiles',
-      acceptanceCriteria: 'Block PII data egress and enforce real-time antivirus deep-packet inspection',
-      status: 'In-Progress',
-      statusCategory: 'In Progress',
-      teamName: 'Security & Infrastructure',
-      storyPoints: 5,
-      assigneeName: 'David Kim',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'SASE-SEC-200',
-      epicSummary: 'Secure Access Service Edge (SASE) Zero-Trust Gateway Deployment',
-      taskKey: 'SASE-203',
-      taskSummary: 'Pilot Zero-Trust Client on Executive and Engineering Devices',
-      acceptanceCriteria: 'Ensure seamless SAML 2.0 authentication with zero VPN connection drops',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Security & Infrastructure',
-      storyPoints: 13,
-      assigneeName: 'Sarah Chen',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-
-    // Feature 4: PAY-ROUTER-300 (Core Platform)
-    {
-      epicKey: 'PAY-ROUTER-300',
-      epicSummary: 'Enterprise Multi-Channel Payment Routing Engine & Settlement',
-      taskKey: 'PAY-301',
-      taskSummary: 'Implement Dynamic Bank Switch Failover Routing',
-      acceptanceCriteria: 'Route around banking outages in under 500ms with 99.999% transaction reliability',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Core Platform',
-      storyPoints: 13,
-      assigneeName: 'Alex Rivera',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'PAY-ROUTER-300',
-      epicSummary: 'Enterprise Multi-Channel Payment Routing Engine & Settlement',
-      taskKey: 'PAY-302',
-      taskSummary: 'ISO 8583 to ISO 20022 Financial Messaging Converter',
-      acceptanceCriteria: 'Full bidirectional translation and schema compliance validation for inter-bank transfers',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Core Platform',
-      storyPoints: 8,
-      assigneeName: 'Marcus Vance',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'PAY-ROUTER-300',
-      epicSummary: 'Enterprise Multi-Channel Payment Routing Engine & Settlement',
-      taskKey: 'PAY-303',
-      taskSummary: 'Kafka-driven Real-Time Settlement Reconciliation Ledger',
-      acceptanceCriteria: 'Reconcile 10,000 TPS transaction stream with zero drift against database balance',
-      status: 'In-Progress',
-      statusCategory: 'In Progress',
-      teamName: 'Core Platform',
-      storyPoints: 13,
-      assigneeName: 'Elena Rostova',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-
-    // Feature 5: MOB-BIO-400 (Mobile Experience)
-    {
-      epicKey: 'MOB-BIO-400',
-      epicSummary: 'Customer Mobile Experience & Biometric ID Onboarding',
-      taskKey: 'MOB-401',
-      taskSummary: 'NFC Passport & National ID Chip Reading Engine',
-      acceptanceCriteria: 'Read and decrypt e-Passport NFC chip within 3 seconds on iOS and Android',
-      status: 'Done',
-      statusCategory: 'Done',
-      teamName: 'Mobile Experience',
-      storyPoints: 8,
-      assigneeName: 'Elena Rostova',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    },
-    {
-      epicKey: 'MOB-BIO-400',
-      epicSummary: 'Customer Mobile Experience & Biometric ID Onboarding',
-      taskKey: 'MOB-402',
-      taskSummary: 'Liveness Detection 3D Facial Verification',
-      acceptanceCriteria: 'ISO 30107-3 compliant anti-spoofing liveness check with <0.1% false acceptance',
-      status: 'To-Do',
-      statusCategory: 'To Do',
-      teamName: 'Mobile Experience',
-      storyPoints: 8,
-      assigneeName: 'Sarah Chen',
-      fiscalYear: 'FY27',
-      quarter: 'Q2',
-      iterationName: 'Iteration 4',
-      sprintState: 'Active',
-    }
-  ];
 
   // Dynamically extract all real Spaces, Projects, and Boards from Jira
   const liveProjectNames = liveSpaces.map(s => s.name).filter(Boolean);
@@ -1089,13 +697,12 @@ export async function getARTSyncData(payload?: {
 
   // Determine effective team name (default to 'All Teams' if not specified or unrecognized)
   let effectiveTeamName = payload?.teamName || 'All Teams';
-  if (effectiveTeamName === 'Platform Engineering Team' && !distinctTeams.includes('Platform Engineering Team')) {
+  if (effectiveTeamName !== 'All Teams' && !distinctTeams.includes(effectiveTeamName)) {
     effectiveTeamName = 'All Teams';
   }
 
-  // Determine active task pool (live Jira tasks or fallback pool if instance is empty)
-  const isSampleData = rawTasks.length === 0;
-  const poolToUse = rawTasks.length > 0 ? rawTasks : fallbackTaskPool;
+  // Use only live Jira tasks — no synthetic mock fallbacks
+  const poolToUse = rawTasks;
 
   // Build feature list dynamically from active pool
   const featureMap = new Map<string, FeatureItem>();
@@ -1151,35 +758,27 @@ export async function getARTSyncData(payload?: {
     .reduce((sum, t) => sum + (t.storyPoints || 0), 0);
   const iterationPerformance = tasksCommitted > 0 ? Math.round((tasksCompleted / tasksCommitted) * 100) : 0;
 
-  // Dynamic iteration objective text based on team
-  let iterationObjective = `Strategic iteration delivery and sprint execution objectives for ${effectiveTeamName}.`;
-  const tCheck = effectiveTeamName.toLowerCase();
-  if (tCheck.includes('workplace')) {
-    iterationObjective = 'Deliver enterprise collaboration hardware integration, end-to-end testing, and civil works room alterations across all active workplace productivity workstreams.';
-  } else if (tCheck.includes('core')) {
-    iterationObjective = 'Deliver payment routing failover switch, ISO 20022 messaging schema, and real-time Kafka settlement ledger.';
-  } else if (tCheck.includes('mobile')) {
-    iterationObjective = 'Roll out NFC passport scanning, ISO 30107-3 compliant 3D facial liveness verification on iOS and Android.';
-  } else if (tCheck.includes('security')) {
-    iterationObjective = 'Deploy SASE Zero-Trust Gateway connectors across multi-cloud VPCs and pilot corporate device DLP.';
-  } else if (tCheck.includes('platform')) {
-    iterationObjective = 'Enforce Cilium network policies across transaction apps in lower environments, validate Cluster Mesh, and establish mobile application security scanning.';
-  } else if (tCheck === 'all' || tCheck === 'all teams') {
-    iterationObjective = 'Deliver cross-workstream strategic iteration objectives including platform observability, zero-trust infrastructure, payment reliability, and mobile biometric onboarding.';
-  } else if (finalTasks.length === 0) {
-    iterationObjective = `No active iteration objective configured for ${effectiveTeamName} in ${iteration}.`;
+  // Dynamic iteration objective derived strictly from active Jira workstream goals or summary
+  let iterationObjective = '';
+  if (finalTasks.length > 0) {
+    const activeEpics = features.slice(0, 3).map(f => f.summary).filter(Boolean);
+    if (activeEpics.length > 0) {
+      iterationObjective = `Deliver key priorities for ${effectiveTeamName}: ${activeEpics.join('; ')}.`;
+    } else {
+      iterationObjective = `Execute committed sprint tasks and deliverables for ${effectiveTeamName}.`;
+    }
+  } else {
+    iterationObjective = `No active iteration tasks found for ${effectiveTeamName} in ${iteration}.`;
   }
 
-  // Dynamic calculations for live Jira vs benchmark sample data
+  // Dynamic calculations for live Jira data
   let burndownData: BurndownPoint[] = [];
   let iterationPerformanceHistory: IterationPerformancePoint[] = [];
   let velocityTrend: VelocityTrendPoint[] = [];
   let riskRegister: RiskItem[] = [];
   let teamPerformanceList: TeamPerformanceItem[] = [];
 
-  const isLiveJiraData = rawTasks.length > 0;
-
-  if (isLiveJiraData) {
+  if (rawTasks.length > 0) {
     // 1. Live Team Performance from Jira child issues / epics
     const teamMap = new Map<string, { total: number; completed: number }>();
     rawTasks.forEach(t => {
@@ -1198,20 +797,21 @@ export async function getARTSyncData(payload?: {
       return { code, name, performance };
     });
 
-    // 2. Live Risk Register from Blocked child issues & At-Risk Epics
+    // 2. Live Risk Register strictly from real blocked issues & defects
     const liveRisks: RiskItem[] = [];
     allEpics.forEach(epic => {
-      if (epic.riskLevel !== 'ON_TRACK') {
+      if (epic.riskLevel && epic.riskLevel !== 'ON_TRACK') {
         liveRisks.push({
           issueKey: epic.key,
-          summary: `${epic.summary} (${epic.riskReasons.join('; ')})`,
+          summary: `${epic.summary} (${(epic.riskReasons || []).join('; ')})`,
           issueType: 'Epic Risk',
           status: epic.status,
           teamName: epic.projectName
         });
       }
       (epic.childIssues || []).forEach(child => {
-        if (child.status.toLowerCase().includes('block') || child.statusCategory === 'To Do' && epic.riskLevel === 'CRITICAL') {
+        const cStatus = (child.status || '').toLowerCase();
+        if (cStatus.includes('block') || child.issueType?.toLowerCase() === 'bug' || (child.statusCategory === 'To Do' && epic.riskLevel === 'CRITICAL')) {
           liveRisks.push({
             issueKey: child.key,
             summary: child.summary,
@@ -1222,83 +822,37 @@ export async function getARTSyncData(payload?: {
         }
       });
     });
-    riskRegister = liveRisks.slice(0, 10);
+    riskRegister = liveRisks.slice(0, 15);
 
     // 3. Live Burndown & Velocity from Jira data
-    const totalSP = storyPointsCommitted || 50;
-    const completedSP = storyPointsCompleted || 0;
+    const totalSP = storyPointsCommitted;
+    const completedSP = storyPointsCompleted;
     const remainingSP = Math.max(0, totalSP - completedSP);
-    burndownData = [
-      { date: 'Day 1', remaining: totalSP, ideal: totalSP },
-      { date: 'Day 3', remaining: Math.round(totalSP * 0.85), ideal: Math.round(totalSP * 0.75) },
-      { date: 'Day 6', remaining: Math.round(totalSP * 0.65), ideal: Math.round(totalSP * 0.5) },
-      { date: 'Day 9', remaining: Math.round(totalSP * 0.4), ideal: Math.round(totalSP * 0.25) },
-      { date: 'Current', remaining: remainingSP, ideal: 0 }
-    ];
+    if (totalSP > 0) {
+      burndownData = [
+        { date: 'Committed', remaining: totalSP, ideal: totalSP },
+        { date: 'Current', remaining: remainingSP, ideal: 0 }
+      ];
+    }
 
     if (portfolioData.teamIterations && portfolioData.teamIterations.length > 0) {
       velocityTrend = portfolioData.teamIterations.map((ti, idx) => ({
         iteration: ti.sprintName || `Sprint ${idx + 1}`,
-        committed: ti.totalStoryPoints || 20,
+        committed: ti.totalStoryPoints || 0,
         completed: ti.completedStoryPoints || 0
       }));
       iterationPerformanceHistory = portfolioData.teamIterations.map((ti, idx) => ({
         iteration: ti.sprintName || `Sprint ${idx + 1}`,
         performance: ti.completionPercentage || 0
       }));
-    } else {
+    } else if (totalSP > 0) {
       velocityTrend = [
-        { iteration: 'Current Sprint', committed: totalSP, completed: completedSP }
+        { iteration: iteration || 'Active Sprint', committed: totalSP, completed: completedSP }
       ];
       iterationPerformanceHistory = [
-        { iteration: 'Current Sprint', performance: iterationPerformance }
+        { iteration: iteration || 'Active Sprint', performance: iterationPerformance }
       ];
     }
-  } else if (finalTasks.length > 0) {
-    // Benchmark reference mockup values for designated demo workstreams
-    burndownData = [
-      { date: 'Aug 18', remaining: 58, ideal: 58 },
-      { date: 'Aug 20', remaining: 58, ideal: 48 },
-      { date: 'Aug 22', remaining: 52, ideal: 40 },
-      { date: 'Aug 24', remaining: 45, ideal: 30 },
-      { date: 'Aug 26', remaining: 46, ideal: 20 },
-      { date: 'Aug 28', remaining: 18, ideal: 10 },
-      { date: 'Aug 30', remaining: 0, ideal: 0 },
-    ];
-
-    iterationPerformanceHistory = [
-      { iteration: 'Iteration 1', performance: 87 },
-      { iteration: 'Iteration 2', performance: 89 },
-      { iteration: 'Iteration 3', performance: 100 },
-      { iteration: 'Iteration 4', performance: 100 },
-    ];
-
-    velocityTrend = [
-      { iteration: 'Iteration 1', committed: 112, completed: 86 },
-      { iteration: 'Iteration 2', committed: 75, completed: 67 },
-      { iteration: 'Iteration 3', committed: 122, completed: 122 },
-      { iteration: 'Iteration 4', committed: 58, completed: 58 },
-      { iteration: 'Iteration 5', committed: 28, completed: 0 },
-    ];
-
-    riskRegister = [
-      { issueKey: 'PLAT-401', summary: 'Firewall NAT rule conflict on egress proxy', issueType: 'Task', status: 'In Progress', teamName: 'Platform Engineering Team' },
-      { issueKey: 'SEC-302', summary: 'Certificate rotation delay in secondary cluster', issueType: 'Bug', status: 'In Progress', teamName: 'Security & Infrastructure' },
-      { issueKey: 'NET-109', summary: 'Latency degradation on inter-region VPC peering', issueType: 'Risk', status: 'Under Investigation', teamName: 'Platform Engineering Team' },
-    ];
-
-    teamPerformanceList = [
-      { code: 'DB', name: 'Digital Banking', performance: 100 },
-      { code: 'DWP', name: 'Digital Workplace', performance: 100 },
-      { code: 'EAM', name: 'Enterprise Architecture', performance: 100 },
-      { code: 'IEP', name: 'Identity & Enterprise', performance: 100 },
-      { code: 'ADP', name: 'App Delivery & Platform', performance: 94 },
-      { code: 'COR', name: 'Core Platform', performance: 89 },
-      { code: 'RPA', name: 'Robotic Process Automation', performance: 88 },
-      { code: 'SAAP', name: 'Security & Access', performance: 82 },
-      { code: 'IAAP', name: 'Infrastructure & Cloud', performance: 80 },
-      { code: 'DAAP', name: 'Data & Analytics', performance: 57 },
-    ];
   }
 
   return {
@@ -1323,9 +877,7 @@ export async function getARTSyncData(payload?: {
     velocityTrend,
     riskRegister,
     teamPerformanceList,
-    emptyReason: finalTasks.length === 0 ? `No tasks found matching your filter selection for "${effectiveTeamName}" in ${iteration}.` : undefined,
-    isSampleData,
+    emptyReason: finalTasks.length === 0 ? `No tasks found in Jira matching selection for "${effectiveTeamName}".` : undefined,
+    isSampleData: false,
   };
 }
-
-
