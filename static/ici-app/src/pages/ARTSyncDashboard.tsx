@@ -193,17 +193,6 @@ export const ARTSyncDashboard: React.FC = () => {
       if (t && t !== 'All' && t !== 'All Teams') set.add(t);
     });
 
-    // 3. Only if the Jira instance has zero discovered boards or teams, provide fallback benchmark streams
-    if (set.size === 0) {
-      [
-        'Platform Engineering Team',
-        'Workplace Productivity',
-        'Core Platform',
-        'Mobile Experience',
-        'Security & Infrastructure',
-      ].forEach((t) => set.add(t));
-    }
-
     return Array.from(set).sort();
   }, [availableBoards, data?.allTeams]);
 
